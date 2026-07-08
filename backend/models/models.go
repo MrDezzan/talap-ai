@@ -27,6 +27,7 @@ type Grant struct {
 	Amount          string   `json:"amount"`
 	Description     string   `json:"description"`
 	Tags            []string `gorm:"serializer:json;type:text" json:"tags"`
+	Requirements    []string `gorm:"serializer:json;type:text" json:"requirements"`
 }
 
 type Profession struct {

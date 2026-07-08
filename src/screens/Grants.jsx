@@ -22,6 +22,7 @@ const C = {
 };
 
 function GrantDetailModal({ grant, onClose, t, lang }) {
+  const navigate = useNavigate();
   if (!grant) return null;
   const tags = grant.tags || ['Грант'];
   return (
@@ -79,7 +80,7 @@ function GrantDetailModal({ grant, onClose, t, lang }) {
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, marginBottom: 12 }}>{t('grants_requirements')}</div>
-            {(grant.tags || []).map((r, i) => (
+            {(grant.requirements || grant.tags || []).map((r, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i ? `1px solid ${C.hairline}` : 'none' }}>
                 <div style={{ width: 20, height: 20, borderRadius: 9999, background: C.blue100, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="check" size={10} color={C.blue} strokeWidth={2.5} />
@@ -97,13 +98,34 @@ function GrantDetailModal({ grant, onClose, t, lang }) {
               <div>
                 <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900 }}>{t('grants_ai_tip')}</div>
                 <div style={{ fontFamily: C.font, fontSize: 13, lineHeight: '20px', color: C.ink700, marginTop: 2 }}>
-                  {t('grants_ai_tip_desc')}
+                  {lang === 'ru' ? 'Вы можете проконсультироваться с Talap AI по требованиям и подготовке к подаче на этот грант.' : 'Осы грантқа құжат тапсыру бойынша Talap AI кеңесшісінен сұрай аласыз.'}
                 </div>
               </div>
             </div>
           </div>
 
-          <Button variant="primary" size="lg" fullWidth icon="arrowRight">{t('grants_apply')}</Button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={() => {
+                const msg = `Привет! Расскажи подробнее про требования и процесс подачи документов на грант "${grant.name}". Что мне нужно подготовить в первую очередь?`;
+                navigate('/chat', { state: { initialMessage: msg } });
+              }}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 20px', borderRadius: 14,
+                background: '#FFFFFF', border: `2px solid ${C.blue}`, cursor: 'pointer',
+                fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.blue,
+                transition: 'all 200ms'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = C.blue50}
+              onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+            >
+              <Icon name="sparkles" size={18} color={C.blue} />
+              {lang === 'ru' ? 'Спросить у ИИ' : 'ИИ-дан сұрау'}
+            </button>
+            <div style={{ flex: 1.5 }}>
+              <Button variant="primary" size="lg" fullWidth icon="arrowRight">{t('grants_apply')}</Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

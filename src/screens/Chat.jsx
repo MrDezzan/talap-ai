@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMobile } from '../hooks/useMobile';
 import Icon from '../components/Icon';
 import Chip from '../components/Chip';
@@ -51,6 +52,7 @@ export default function Chat() {
   const { user, aiProfile } = useAuth();
   const { t } = useLanguage();
   const isMobile = useMobile();
+  const location = useLocation();
   const { 
     threads, fetchThreads, activeThreadId, setActiveThreadId, 
     messages: allMessages, addMessage, fetchMessages, setMessages,
@@ -63,6 +65,19 @@ export default function Chat() {
   useEffect(() => {
     fetchThreads();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.initialMessage) {
+      const msg = location.state.initialMessage;
+      // Clear state so it doesn't resend on refresh/HMR
+      window.history.replaceState({}, document.title);
+      
+      // Delay slightly to ensure thread is ready/selected
+      setTimeout(() => {
+        send(msg);
+      }, 600);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (threads.length > 0 && !activeThreadId) {
