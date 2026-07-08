@@ -21,8 +21,8 @@ const QUESTIONS = [
     options: [
       { id: 'math', label: 'Математика и логика', icon: 'compass' },
       { id: 'art', label: 'Рисование и дизайн', icon: 'sparkles' },
-      { id: 'human', label: 'Общение и люди', icon: 'user' },
-      { id: 'science', label: 'Биология и наука', icon: 'target' },
+      { id: 'human', label: 'Общение и языки', icon: 'user' },
+      { id: 'science', label: 'Биология и физика/химия', icon: 'target' },
     ]
   },
   {
@@ -53,6 +53,36 @@ const QUESTIONS = [
       { id: 'impact', label: 'Польза обществу', icon: 'heart' },
       { id: 'fame', label: 'Признание и слава', icon: 'star' },
       { id: 'growth', label: 'Постоянное обучение', icon: 'book' },
+    ]
+  },
+  {
+    id: 'problem_solving',
+    title: 'Как ты обычно решаешь сложные задачи?',
+    options: [
+      { id: 'logic', label: 'Анализирую факты и строю алгоритм', icon: 'compass' },
+      { id: 'intuition', label: 'Ищу нестандартный творческий подход', icon: 'sparkles' },
+      { id: 'people', label: 'Советуюсь с командой и экспертами', icon: 'users' },
+      { id: 'practical', label: 'Быстро тестирую варианты на практике', icon: 'target' },
+    ]
+  },
+  {
+    id: 'leisure',
+    title: 'Чему ты посвящаешь свободное время?',
+    options: [
+      { id: 'gadgets', label: 'Изучению технологий и программирования', icon: 'monitor' },
+      { id: 'draw', label: 'Творчеству, музыке или рисованию', icon: 'sparkles' },
+      { id: 'books', label: 'Чтению книг, поиску новых знаний', icon: 'book' },
+      { id: 'games', label: 'Играм, общению, организации событий', icon: 'users' },
+    ]
+  },
+  {
+    id: 'project_role',
+    title: 'Какую роль ты выберешь в командном проекте?',
+    options: [
+      { id: 'builder', label: 'Разработчик/конструктор (делать руками)', icon: 'target' },
+      { id: 'presenter', label: 'Спикер/презентатор (продавать идею)', icon: 'globe' },
+      { id: 'manager', label: 'Лидер (организовать команду и сроки)', icon: 'award' },
+      { id: 'researcher', label: 'Исследователь (собрать и проверить данные)', icon: 'compass' },
     ]
   }
 ];

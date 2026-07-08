@@ -106,162 +106,441 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			_ = json.Unmarshal(portfolio.QuizAnswers, &answers)
 		}
 
+		// Quiz variables
 		subject := ""
 		workType := ""
 		environment := ""
+		goal := ""
+		problemSolving := ""
+		leisure := ""
+		projectRole := ""
+
 		if answers != nil {
-			if s, ok := answers["subject"].(string); ok {
-				subject = s
-			}
-			if w, ok := answers["work_type"].(string); ok {
-				workType = w
-			}
-			if e, ok := answers["environment"].(string); ok {
-				environment = e
-			}
+			if s, ok := answers["subject"].(string); ok { subject = s }
+			if w, ok := answers["work_type"].(string); ok { workType = w }
+			if e, ok := answers["environment"].(string); ok { environment = e }
+			if g, ok := answers["goal"].(string); ok { goal = g }
+			if p, ok := answers["problem_solving"].(string); ok { problemSolving = p }
+			if l, ok := answers["leisure"].(string); ok { leisure = l }
+			if r, ok := answers["project_role"].(string); ok { projectRole = r }
 		}
 
-		// Fallback to interests if quiz is empty
-		if subject == "" && len(portfolio.Interests) > 0 {
-			firstInterest := strings.ToLower(portfolio.Interests[0])
-			if strings.Contains(firstInterest, "программирование") || strings.Contains(firstInterest, "cs") || strings.Contains(firstInterest, "math") || strings.Contains(firstInterest, "информатика") || strings.Contains(firstInterest, "математика") {
-				subject = "math"
-			} else if strings.Contains(firstInterest, "дизайн") || strings.Contains(firstInterest, "design") || strings.Contains(firstInterest, "рисование") || strings.Contains(firstInterest, "art") {
-				subject = "art"
-			} else if strings.Contains(firstInterest, "биология") || strings.Contains(firstInterest, "science") || strings.Contains(firstInterest, "физика") || strings.Contains(firstInterest, "химия") {
-				subject = "science"
-			} else {
-				subject = "human"
-			}
+		// Scoring categories
+		itScore := 0
+		designScore := 0
+		businessScore := 0
+		medicineScore := 0
+		engineeringScore := 0
+
+		// 1. Subject scoring
+		switch subject {
+		case "math":
+			itScore += 20
+			engineeringScore += 15
+			businessScore += 5
+		case "art":
+			designScore += 20
+		case "human":
+			businessScore += 20
+			designScore += 5
+		case "science":
+			medicineScore += 20
+			engineeringScore += 15
 		}
-		if subject == "" {
-			subject = "math" // Default fallback
+
+		// 2. Work type scoring
+		switch workType {
+		case "team":
+			businessScore += 10
+			medicineScore += 10
+		case "solo":
+			itScore += 10
+			engineeringScore += 10
+		case "lead":
+			businessScore += 15
+		case "create":
+			itScore += 10
+			designScore += 15
+			engineeringScore += 10
+		}
+
+		// 3. Environment scoring
+		switch environment {
+		case "office":
+			businessScore += 10
+			itScore += 5
+		case "remote":
+			itScore += 15
+			designScore += 15
+		case "travel":
+			businessScore += 15
+		case "lab":
+			medicineScore += 15
+			engineeringScore += 15
+		}
+
+		// 4. Goal scoring
+		switch goal {
+		case "money":
+			itScore += 10
+			businessScore += 15
+		case "impact":
+			medicineScore += 15
+			engineeringScore += 5
+		case "fame":
+			designScore += 15
+			businessScore += 5
+		case "growth":
+			itScore += 10
+			engineeringScore += 10
+			medicineScore += 5
+		}
+
+		// 5. Problem solving scoring
+		switch problemSolving {
+		case "logic":
+			itScore += 10
+			engineeringScore += 10
+			medicineScore += 5
+		case "intuition":
+			designScore += 15
+		case "people":
+			businessScore += 10
+			medicineScore += 10
+		case "practical":
+			itScore += 5
+			engineeringScore += 10
+			designScore += 5
+		}
+
+		// 6. Leisure scoring
+		switch leisure {
+		case "gadgets":
+			itScore += 15
+			engineeringScore += 15
+		case "draw":
+			designScore += 20
+		case "books":
+			medicineScore += 15
+			engineeringScore += 10
+		case "games":
+			businessScore += 15
+			designScore += 5
+		}
+
+		// 7. Project role scoring
+		switch projectRole {
+		case "builder":
+			itScore += 15
+			engineeringScore += 15
+			designScore += 5
+		case "presenter":
+			businessScore += 15
+			designScore += 10
+		case "manager":
+			businessScore += 20
+		case "researcher":
+			medicineScore += 20
+			engineeringScore += 10
+		}
+
+		// Find the highest scoring category
+		maxScore := itScore
+		category := "it"
+
+		if designScore > maxScore {
+			maxScore = designScore
+			category = "design"
+		}
+		if businessScore > maxScore {
+			maxScore = businessScore
+			category = "business"
+		}
+		if medicineScore > maxScore {
+			maxScore = medicineScore
+			category = "medicine"
+		}
+		if engineeringScore > maxScore {
+			maxScore = engineeringScore
+			category = "engineering"
 		}
 
 		var result AnalysisResult
 
-		switch subject {
-		case "math":
-			if workType == "create" || environment == "remote" {
+		switch category {
+		case "it":
+			if leisure == "gadgets" && projectRole == "builder" {
 				result = AnalysisResult{
-					TopProf: "Software Engineer",
-					Summary: "Отличный выбор! Твой аналитический склад ума в сочетании с желанием создавать новые продукты идеально подходит для сферы разработки ПО. Рынок IT сейчас активно растет, особенно в Казахстане.",
+					TopProf: "AI/ML Specialist",
+					Summary: "Отличный выбор! Твоя страсть к инновациям и желание создавать интеллектуальные алгоритмы идеально подходят для сферы ИИ. Профессия разработчика машинного обучения имеет невероятную скорость роста спроса.",
 					Roadmap: []RoadmapStep{
-						{Step: "1", Duration: "1 месяц", Title: "Изучение базового программирования", Description: "Выбери Python или Go, пройди базовый интерактивный курс по синтаксису и напиши свое первое консольное приложение."},
-						{Step: "2", Duration: "3 месяца", Title: "Изучение баз данных и веб-технологий", Description: "Разберись с SQL, веб-фреймворками (например, Gin для Go или FastAPI для Python) и принципами работы сетей."},
-						{Step: "3", Duration: "6 месяцев", Title: "Проектное портфолио и стажировка", Description: "Создай 2-3 веб-сервиса на GitHub, начни готовиться к техническим собеседованиям и подавай заявки на стажировки."},
+						{Step: "1", Duration: "1-2 месяца", Title: "Математический фундамент и Python", Description: "Изучи Python на продвинутом уровне, а также освежи знания линейной алгебры и теории вероятностей."},
+						{Step: "2", Duration: "3 месяца", Title: "Основы Data Science и ML", Description: "Научись работать с Jupyter Notebook, библиотеками Pandas, NumPy и классическими алгоритмами Scikit-Learn."},
+						{Step: "3", Duration: "6 месяцев", Title: "Глубокое обучение и Нейросети", Description: "Переходи к фреймворкам PyTorch или TensorFlow. Создай проект по распознаванию образов или анализу текста для портфолио."},
 					},
 					Professions: []Recommendation{
-						{Name: "Software Engineer", Description: "Разработка бэкенда и архитектуры приложений.", MatchPercentage: 95},
-						{Name: "AI Specialist", Description: "Создание моделей машинного обучения.", MatchPercentage: 88},
-						{Name: "Cybersecurity Analyst", Description: "Обеспечение безопасности данных.", MatchPercentage: 80},
+						{Name: "AI/ML Specialist", Description: "Разработка архитектур нейросетей и генеративного ИИ.", MatchPercentage: 96},
+						{Name: "Data Scientist", Description: "Анализ больших данных и прогнозирование трендов.", MatchPercentage: 88},
+						{Name: "Software Engineer", Description: "Проектирование крупных бэкенд-систем.", MatchPercentage: 82},
 					},
 					Grants: []Recommendation{
-						{Name: "AITU Talent Grant", Description: "Специальный грант для IT-специалистов в Astana IT University.", MatchPercentage: 92},
-						{Name: "Google Step Internship", Description: "Стажировка в Google для студентов младших курсов.", MatchPercentage: 88},
-						{Name: "NU Foundation", Description: "Полный грант на обучение в Назарбаев Университете.", MatchPercentage: 75},
+						{Name: "AITU Talent Grant", Description: "Специальный IT-грант в Astana IT University.", MatchPercentage: 94},
+						{Name: "Google STEP Internship", Description: "Оплачиваемая летняя IT-стажировка в Google.", MatchPercentage: 90},
+						{Name: "KBTU Olympiad Grant", Description: "100% покрытие обучения в КБТУ на IT-направлениях.", MatchPercentage: 85},
 					},
 				}
-			} else if workType == "lead" {
+			} else if environment == "remote" {
 				result = AnalysisResult{
-					TopProf: "Product Manager",
-					Summary: "Твоя склонность к лидерству и отличные аналитические навыки делают тебя прекрасным кандидатом для управления продуктами. Выступай связующим звеном между разработчиками, дизайнерами и бизнесом.",
+					TopProf: "Software Engineer",
+					Summary: "Твой аналитический склад ума в сочетании со стремлением работать самостоятельно отлично подходит для разработки ПО. Разработка бэкенда дает полную свободу в выборе места работы.",
 					Roadmap: []RoadmapStep{
-						{Step: "1", Duration: "1 месяц", Title: "Основы продуктового мышления", Description: "Изучи жизненный цикл разработки IT-продуктов, базовые бизнес-модели и основы юнит-экономики."},
-						{Step: "2", Duration: "3 месяца", Title: "Метрики и аналитика", Description: "Пойми, как работают Amplitude, Google Analytics, и научись принимать решения на основе данных."},
-						{Step: "3", Duration: "6 месяцев", Title: "Создание пет-проекта", Description: "Разработай и запусти простой no-code продукт (например, в Glide или Bubble), чтобы показать навыки на практике."},
+						{Step: "1", Duration: "1 месяц", Title: "Базовые алгоритмы и синтаксис", Description: "Освой основы программирования на Go или Python, разберись с типами данных и простыми алгоритмами."},
+						{Step: "2", Duration: "3 месяца", Title: "Базы данных и Архитектура веб-приложений", Description: "Изучи SQL, проектирование реляционных баз данных и разработку REST API на современных фреймворках."},
+						{Step: "3", Duration: "6 месяцев", Title: "Пет-проекты и GitHub", Description: "Сделай полноценный проект (например, API для интернет-магазина), залей на GitHub и начни подавать резюме."},
 					},
 					Professions: []Recommendation{
-						{Name: "Product Manager", Description: "Управление развитием продукта от идеи до запуска.", MatchPercentage: 93},
-						{Name: "Data Scientist", Description: "Глубокий анализ бизнес-метрик и данных.", MatchPercentage: 82},
-						{Name: "Software Engineer", Description: "Разработка технической базы проекта.", MatchPercentage: 75},
+						{Name: "Software Engineer", Description: "Разработка архитектур приложений и бэкенд-сервисов.", MatchPercentage: 95},
+						{Name: "Mobile Developer", Description: "Разработка приложений для iOS и Android.", MatchPercentage: 87},
+						{Name: "Cybersecurity Analyst", Description: "Анализ систем безопасности и сетей.", MatchPercentage: 78},
 					},
 					Grants: []Recommendation{
-						{Name: "Suleyman Demirel University Grant", Description: "Бизнес-грант на обучение в SDU.", MatchPercentage: 91},
-						{Name: "Болашак", Description: "Престижная международная стипендия.", MatchPercentage: 85},
-						{Name: "Turkiye Burslari", Description: "Государственный грант на обучение в Турции.", MatchPercentage: 80},
+						{Name: "AITU Talent Grant", Description: "IT-грант для абитуриентов в Astana IT University.", MatchPercentage: 92},
+						{Name: "Google STEP Internship", Description: "Программа стажировки и стипендий от Google.", MatchPercentage: 88},
+						{Name: "Грант Назарбаев Университета (NU)", Description: "Англоязычные программы бакалавриата в NU.", MatchPercentage: 80},
+					},
+				}
+			} else if problemSolving == "logic" {
+				result = AnalysisResult{
+					TopProf: "Cybersecurity Analyst",
+					Summary: "Логика и внимание к деталям — главные качества белого хакера. Ты научишься мыслить как злоумышленник, чтобы выстраивать надежную защиту корпоративных систем от угроз.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "2 месяца", Title: "Основы сетей и Linux", Description: "Освой администрирование Linux, пойми работу стека сетевых протоколов TCP/IP."},
+						{Step: "2", Duration: "3 месяца", Title: "Анализ уязвимостей", Description: "Изучи основы криптографии, а также инструменты сканирования сетей (Nmap, Wireshark, Burp Suite)."},
+						{Step: "3", Duration: "6 месяцев", Title: "Практика на CTF", Description: "Решай задания по безопасности на платформах HackTheBox и TryHackMe для формирования практического опыта."},
+					},
+					Professions: []Recommendation{
+						{Name: "Cybersecurity Analyst", Description: "Защита информационных систем и предотвращение взломов.", MatchPercentage: 93},
+						{Name: "Software Engineer", Description: "Разработка защищенного кода.", MatchPercentage: 81},
+						{Name: "Data Scientist", Description: "Анализ аномалий в поведении сетевого трафика.", MatchPercentage: 75},
+					},
+					Grants: []Recommendation{
+						{Name: "KBTU Olympiad Grant", Description: "Бесплатное обучение на факультете кибербезопасности КБТУ.", MatchPercentage: 90},
+						{Name: "AITU Talent Grant", Description: "Гранты в сфере компьютерной безопасности AITU.", MatchPercentage: 85},
+						{Name: "Болашак", Description: "Обучение кибербезопасности в ведущих вузах США и Европы.", MatchPercentage: 82},
 					},
 				}
 			} else {
 				result = AnalysisResult{
-					TopProf: "Data Scientist",
-					Summary: "Твоя склонность к логическому анализу и работе со сложными системами делает тебя сильным кандидатом для Data Science и ML. Анализируй тренды, строй прогнозы и находи неочевидные инсайты.",
+					TopProf: "Mobile Developer",
+					Summary: "Каждый использует мобильные приложения ежедневно. Твоя техническая подготовка позволит тебе создавать быстрые, удобные и красивые приложения для iOS или Android.",
 					Roadmap: []RoadmapStep{
-						{Step: "1", Duration: "1 месяц", Title: "Математика и базовый Python", Description: "Подтяни основы теории вероятностей, линейной алгебры и научись работать с Jupyter Notebook."},
-						{Step: "2", Duration: "3 месяца", Title: "Библиотеки анализа данных", Description: "Изучи Pandas, NumPy, SQL для работы с БД и основы визуализации (Matplotlib, Seaborn)."},
-						{Step: "3", Duration: "6 месяцев", Title: "Машинное обучение", Description: "Разберись в классических алгоритмах регрессии, классификации и кластеризации с помощью Scikit-Learn."},
+						{Step: "1", Duration: "1 месяц", Title: "Выбор платформы и языка", Description: "Выбери Swift для iOS или Kotlin для Android. Пройди базовый курс по объектно-ориентированному программированию."},
+						{Step: "2", Duration: "3 месяца", Title: "Проектирование UI и работа с API", Description: "Изучи основы верстки экранов (SwiftUI или Jetpack Compose) и интеграцию с бэкендом через REST API."},
+						{Step: "3", Duration: "6 месяцев", Title: "Публикация первого приложения", Description: "Создай и опубликуй свое первое простое приложение в App Store или Google Play, чтобы доказать свои навыки работодателям."},
 					},
 					Professions: []Recommendation{
-						{Name: "Data Scientist", Description: "Анализ данных и построение ML-моделей.", MatchPercentage: 94},
-						{Name: "Cybersecurity Analyst", Description: "Защита информации и выявление угроз.", MatchPercentage: 87},
-						{Name: "Software Engineer", Description: "Разработка надежных высоконагруженных сервисов.", MatchPercentage: 78},
+						{Name: "Mobile Developer", Description: "Создание приложений для смартфонов и планшетов.", MatchPercentage: 94},
+						{Name: "Software Engineer", Description: "Веб-разработка и создание API для приложений.", MatchPercentage: 85},
+						{Name: "UX/UI Designer", Description: "Обеспечение эстетичности интерфейсов мобильных приложений.", MatchPercentage: 78},
 					},
 					Grants: []Recommendation{
-						{Name: "NU Foundation", Description: "Исследовательские гранты в Назарбаев Университете.", MatchPercentage: 90},
-						{Name: "AITU Talent Grant", Description: "Обучение Data Science в Astana IT University.", MatchPercentage: 85},
-						{Name: "Болашак", Description: "Обучение в топовых зарубежных вузах по техническим специальностям.", MatchPercentage: 78},
+						{Name: "AITU Talent Grant", Description: "Стипендии на мобильную разработку в Astana IT University.", MatchPercentage: 91},
+						{Name: "SDU Internal Grant", Description: "Внутренние образовательные гранты SDU.", MatchPercentage: 85},
+						{Name: "Google STEP Internship", Description: "Стажировка в европейских командах Google.", MatchPercentage: 79},
 					},
 				}
 			}
-		case "art":
-			result = AnalysisResult{
-				TopProf: "UX/UI Designer",
-				Summary: "Творческий потенциал и стремление делать вещи красивыми и удобными — это основа профессии дизайнера интерфейсов. Ты сможешь влиять на то, как миллионы людей используют приложения каждый день.",
-				Roadmap: []RoadmapStep{
-					{Step: "1", Duration: "1 месяц", Title: "Основы дизайна и Figma", Description: "Изучи интерфейс Figma, принципы композиции, типографики и теории цвета."},
-					{Step: "2", Duration: "3 месяца", Title: "Пользовательский опыт (UX)", Description: "Пойми, как проводить исследования пользователей, проектировать карты переходов (CJM) и создавать прототипы."},
-					{Step: "3", Duration: "6 месяцев", Title: "Портфолио на Behance/Dribbble", Description: "Оформи 3 красивых кейса (мобильное приложение, веб-сайт) и начни брать первые фриланс-заказы."},
-				},
-				Professions: []Recommendation{
-					{Name: "UX/UI Designer", Description: "Создание удобных цифровых интерфейсов.", MatchPercentage: 96},
-					{Name: "Marketing Director", Description: "Разработка визуальных кампаний бренда.", MatchPercentage: 84},
-					{Name: "Product Manager", Description: "Управление дизайном и концептом продукта.", MatchPercentage: 75},
-				},
-				Grants: []Recommendation{
-					{Name: "Suleyman Demirel University Grant", Description: "Внутренний грант SDU на гуманитарные и медиа направления.", MatchPercentage: 88},
-					{Name: "Болашак", Description: "Стипендия для обучения дизайну за рубежом.", MatchPercentage: 80},
-					{Name: "Turkiye Burslari", Description: "Гранты в ведущих вузах искусств Турции.", MatchPercentage: 75},
-				},
+
+		case "design":
+			if projectRole == "builder" || problemSolving == "logic" {
+				result = AnalysisResult{
+					TopProf: "UX/UI Designer",
+					Summary: "Идеальный баланс аналитики и творчества! Твоя способность мыслить логически поможет тебе создавать удобную структуру интерфейсов, а эстетический вкус — делать их привлекательными.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "1 месяц", Title: "Базовые инструменты в Figma", Description: "Освой основы создания компонентов, автолейаутов и стилей в Figma."},
+						{Step: "2", Duration: "2 месяца", Title: "Проектирование пользовательского пути (UX)", Description: "Научись проводить коридорные тестирования, строить карты CJM и проектировать логику интерфейсов."},
+						{Step: "3", Duration: "5 месяцев", Title: "Реальные кейсы в портфолио", Description: "Переработай дизайн неудобного приложения или создай концепт нового и выложи на Behance."},
+					},
+					Professions: []Recommendation{
+						{Name: "UX/UI Designer", Description: "Проектирование пользовательского опыта и визуального дизайна интерфейсов.", MatchPercentage: 95},
+						{Name: "Content Creator / SMM", Description: "Создание визуального стиля для социальных медиа.", MatchPercentage: 80},
+						{Name: "Product Manager", Description: "Управление концептом и развитием продукта.", MatchPercentage: 74},
+					},
+					Grants: []Recommendation{
+						{Name: "SDU Internal Grant", Description: "Внутренний грант SDU на медиа и дизайн-направления.", MatchPercentage: 92},
+						{Name: "Turkiye Burslari", Description: "Стипендии в лучших вузах искусств Турции.", MatchPercentage: 84},
+						{Name: "Болашак", Description: "Обучение зарубежному медиадизайну и UX.", MatchPercentage: 78},
+					},
+				}
+			} else {
+				result = AnalysisResult{
+					TopProf: "Content Creator / SMM",
+					Summary: "Твоя креативность и понимание людей делают тебя отличным контент-стратегом. Ты сможешь легко находить общий язык с аудиторией и создавать вирусный визуальный и текстовый контент.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "1 месяц", Title: "Основы сторителлинга и мобильной съемки", Description: "Пойми принципы удержания внимания, раскадровки, монтажа видео и цветокоррекции на телефоне."},
+						{Step: "2", Duration: "2 месяца", Title: "Алгоритмы платформ и продвижение", Description: "Изучи, как работают алгоритмы рекомендаций в TikTok, Instagram и YouTube, и освой основы SMM-копирайтинга."},
+						{Step: "3", Duration: "4 месяца", Title: "Продвижение первых клиентов", Description: "Помоги набрать просмотры местному бренду или начни вести экспертный блог, чтобы показать живую статистику."},
+					},
+					Professions: []Recommendation{
+						{Name: "Content Creator / SMM", Description: "Создание контента и продвижение личного или бизнес-бренда.", MatchPercentage: 94},
+						{Name: "UX/UI Designer", Description: "Создание визуального контента и дизайн страниц.", MatchPercentage: 82},
+						{Name: "Marketing Director", Description: "Разработка крупных рекламных стратегий.", MatchPercentage: 79},
+					},
+					Grants: []Recommendation{
+						{Name: "SDU Internal Grant", Description: "Скидки до 100% на журналистику и связи с общественностью в SDU.", MatchPercentage: 90},
+						{Name: "Turkiye Burslari", Description: "Связи с общественностью и медиапроизводство в Турции.", MatchPercentage: 85},
+						{Name: "Болашак", Description: "Гранты на зарубежное обучение в сфере медиакоммуникаций.", MatchPercentage: 75},
+					},
+				}
 			}
-		case "science":
-			result = AnalysisResult{
-				TopProf: "Medical Doctor",
-				Summary: "Стремление приносить реальную пользу обществу через научные или практические дисциплины — очень благородный выбор. Медицина и классическая инженерия остаются столпами стабильной карьеры.",
-				Roadmap: []RoadmapStep{
-					{Step: "1", Duration: "1 месяц", Title: "Углубленная подготовка по биологии и химии", Description: "Сфокусируйся на ключевых темах общей биологии, анатомии человека и органической химии."},
-					{Step: "2", Duration: "3 месяца", Title: "Волонтерство в медицинских организациях", Description: "Попробуй устроиться волонтером в больницу или научную лабораторию, чтобы понять профессию изнутри."},
-					{Step: "3", Duration: "6 месяцев", Title: "Подготовка к конкурсу грантов", Description: "Сдай ЕНТ на максимальный балл или подготовь сильное резюме для получения международных стипендий."},
-				},
-				Professions: []Recommendation{
-					{Name: "Medical Doctor", Description: "Диагностика и лечение пациентов.", MatchPercentage: 94},
-					{Name: "Civil Engineer", Description: "Проектирование безопасных объектов.", MatchPercentage: 85},
-					{Name: "Data Scientist", Description: "Аналитика в сфере биоинформатики.", MatchPercentage: 70},
-				},
-				Grants: []Recommendation{
-					{Name: "NU Foundation", Description: "Медицинская школа Назарбаев Университета.", MatchPercentage: 93},
-					{Name: "Болашак", Description: "Гранты на обучение в лучших медицинских резидентурах мира.", MatchPercentage: 88},
-					{Name: "Turkiye Burslari", Description: "Обучение в престижных турецких медицинских вузах.", MatchPercentage: 82},
-				},
+
+		case "business":
+			if projectRole == "manager" {
+				result = AnalysisResult{
+					TopProf: "Product Manager",
+					Summary: "Отличные организаторские качества и умение сплотить команду делают тебя идеальным руководителем продуктов. Ты будешь направлять команду разработки к общей цели.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "2 месяца", Title: "Разбор Agile и Scrum", Description: "Пойми, как организуются процессы разработки в IT-компаниях по гибким методологиям."},
+						{Step: "2", Duration: "2 месяца", Title: "Продуктовые метрики и гипотезы", Description: "Разберись, как проверять гипотезы, создавать MVP (минимально жизнеспособный продукт) и анализировать отзывы."},
+						{Step: "3", Duration: "6 месяцев", Title: "Запуск своего No-code проекта", Description: "Создай прототип приложения на Glide/Bubble и презентуй его в резюме для получения первой работы."},
+					},
+					Professions: []Recommendation{
+						{Name: "Product Manager", Description: "Управление жизненным циклом продукта и развитие бизнеса.", MatchPercentage: 96},
+						{Name: "Marketing Director", Description: "Реклама и вывод новых продуктов на рынок.", MatchPercentage: 85},
+						{Name: "Financial Analyst", Description: "Расчет юнит-экономики и бюджетирование.", MatchPercentage: 76},
+					},
+					Grants: []Recommendation{
+						{Name: "SDU Internal Grant", Description: "Гранты в SDU на менеджмент и управление бизнесом.", MatchPercentage: 93},
+						{Name: "Болашак", Description: "Престижная бизнес-магистратура MBA за рубежом.", MatchPercentage: 88},
+						{Name: "Turkiye Burslari", Description: "Бизнес-образование в ведущих университетах Турции.", MatchPercentage: 80},
+					},
+				}
+			} else if problemSolving == "logic" {
+				result = AnalysisResult{
+					TopProf: "Financial Analyst",
+					Summary: "Сочетание прагматичности, любви к математике и понимания бизнес-процессов — залог успеха в сфере финансов. Ты будешь анализировать инвестиции, риски и выстраивать стратегии доходности.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "2 месяца", Title: "Углубленный Excel и Финансовый учет", Description: "Изучи формулы, сводные таблицы Excel и разберись в основных отчетах (P&L, Cash Flow, Balance Sheet)."},
+						{Step: "2", Duration: "3 месяца", Title: "Финансовое моделирование", Description: "Научись строить финансовые модели компаний и оценивать инвестиционную привлекательность."},
+						{Step: "3", Duration: "6 месяцев", Title: "Подготовка к сертификации CFA", Description: "Начни готовиться к базовому уровню CFA и пройди стажировку в банке или консалтинговой компании."},
+					},
+					Professions: []Recommendation{
+						{Name: "Financial Analyst", Description: "Анализ финансовых потоков, рисков и инвестиционная оценка.", MatchPercentage: 94},
+						{Name: "Product Manager", Description: "Экономическая оценка эффективности продуктов.", MatchPercentage: 84},
+						{Name: "Data Scientist", Description: "Машинное обучение в финансовом секторе.", MatchPercentage: 73},
+					},
+					Grants: []Recommendation{
+						{Name: "SDU Internal Grant", Description: "Скидки за высокие баллы на экономику и финансы в SDU.", MatchPercentage: 91},
+						{Name: "Болашак", Description: "Магистратура в лучших бизнес-школах Великобритании и США.", MatchPercentage: 86},
+						{Name: "Yessenov Foundation Grant", Description: "Стажировки и гранты для будущих лидеров бизнеса.", MatchPercentage: 80},
+					},
+				}
+			} else {
+				result = AnalysisResult{
+					TopProf: "Marketing Director",
+					Summary: "Стратегический взгляд и глубокое понимание человеческой психологии позволят тебе вести крупные рекламные проекты. Ты будешь определять, как именно аудитория видит продукты и услуги.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "1 месяц", Title: "Теория маркетинга и позиционирования", Description: "Изучи основы 4P маркетинга, анализ конкурентов и позиционирование бренда."},
+						{Step: "2", Duration: "3 месяца", Title: "Performance и Digital-маркетинг", Description: "Освой таргетированную рекламу, контекстную рекламу, веб-аналитику и воронки продаж."},
+						{Step: "3", Duration: "6 месяцев", Title: "Создание реальных кейсов", Description: "Помоги привлечь клиентов локальному бизнесу и оформи результаты (ROI, CPC, Лиды) в кейс-резюме."},
+					},
+					Professions: []Recommendation{
+						{Name: "Marketing Director", Description: "Разработка стратегии бренда и управление рекламным бюджетом.", MatchPercentage: 95},
+						{Name: "Product Manager", Description: "Анализ потребностей клиентов и создание MVP.", MatchPercentage: 87},
+						{Name: "Content Creator / SMM", Description: "Разработка креативного контента для рекламы.", MatchPercentage: 80},
+					},
+					Grants: []Recommendation{
+						{Name: "SDU Internal Grant", Description: "Стипендии SDU на маркетинг и связи с общественностью.", MatchPercentage: 93},
+						{Name: "Болашак", Description: "Обучение бренд-менеджменту в лучших университетах мира.", MatchPercentage: 85},
+						{Name: "Turkiye Burslari", Description: "Полные государственные гранты на обучение маркетингу в Турции.", MatchPercentage: 79},
+					},
+				}
 			}
-		default: // "human" или любой другой случай
-			result = AnalysisResult{
-				TopProf: "Marketing Director",
-				Summary: "Отличные коммуникативные навыки и способность координировать процессы делают тебя прирожденным лидером или стратегом. Сфера продакт-менеджмента и маркетинга сейчас крайне востребована.",
-				Roadmap: []RoadmapStep{
-					{Step: "1", Duration: "1 месяц", Title: "Основы маркетинга и психологии потребителя", Description: "Пойми принципы позиционирования, сегментации рынка и построения бренда."},
-					{Step: "2", Duration: "3 месяца", Title: "Цифровой маркетинг и таргет", Description: "Изучи инструменты таргетированной рекламы, SEO, контекстную рекламу и работу с инфлюенсерами."},
-					{Step: "3", Duration: "6 месяцев", Title: "Первые кейсы и продвижение", Description: "Помоги местному бизнесу или стартапу настроить поток клиентов и оформи этот кейс в портфолио."},
-				},
-				Professions: []Recommendation{
-					{Name: "Marketing Director", Description: "Разработка стратегии продвижения и рекламы бренда.", MatchPercentage: 93},
-					{Name: "Product Manager", Description: "Создание и развитие продуктов под запросы рынка.", MatchPercentage: 88},
-					{Name: "UX/UI Designer", Description: "Понимание психологии пользователей для улучшения интерфейсов.", MatchPercentage: 72},
-				},
-				Grants: []Recommendation{
-					{Name: "Suleyman Demirel University Grant", Description: "Гранты в SDU на маркетинг и бизнес-управление.", MatchPercentage: 91},
-					{Name: "Болашак", Description: "Обучение бизнес-маркетингу и менеджменту за рубежом.", MatchPercentage: 85},
-					{Name: "Turkiye Burslari", Description: "Гранты в ведущих бизнес-школах Турции.", MatchPercentage: 80},
-				},
+
+		case "medicine":
+			if projectRole == "researcher" {
+				result = AnalysisResult{
+					TopProf: "Biotech Specialist",
+					Summary: "Медицина будущего! Твой исследовательский интерес к науке позволит тебе создавать инновации в лабораториях: новые вакцины, методы лечения рака и биотехнологические продукты.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "2 месяца", Title: "Глубокая молекулярная биология", Description: "Освой основы генетики, клеточной биологии и органической химии."},
+						{Step: "2", Duration: "3 месяца", Title: "Лабораторные методы исследований", Description: "Изучи теорию ПЦР, хроматографии и принципы культивирования клеток."},
+						{Step: "3", Duration: "6 месяцев", Title: "Участие в научных проектах", Description: "Найди научного руководителя, начни участвовать в реальных лабораторных тестах и готовь научную работу."},
+					},
+					Professions: []Recommendation{
+						{Name: "Biotech Specialist", Description: "Лабораторные исследования, генная инженерия и биофармацевтика.", MatchPercentage: 95},
+						{Name: "Medical Doctor", Description: "Клиническая практика и лечебная деятельность.", MatchPercentage: 83},
+						{Name: "Data Scientist", Description: "Биоинформатика и анализ генетических кодов.", MatchPercentage: 75},
+					},
+					Grants: []Recommendation{
+						{Name: "Грант Назарбаев Университета (NU)", Description: "Полные исследовательские гранты школы наук NU.", MatchPercentage: 94},
+						{Name: "Yessenov Foundation Grant", Description: "Гранты на прохождение летних научных стажировок в лабораториях мира.", MatchPercentage: 90},
+						{Name: "Болашак", Description: "Обучение биотехнологиям за рубежом.", MatchPercentage: 86},
+					},
+				}
+			} else {
+				result = AnalysisResult{
+					TopProf: "Medical Doctor",
+					Summary: "Твоя высокая эмпатия и научный интерес ведут тебя к самой благородной профессии. Быть врачом — это сложный путь, но он гарантирует колоссальную востребованность и реальное спасение жизней.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "2 месяца", Title: "Подготовка к ЕНТ (Биология/Химия)", Description: "Пройди углубленные курсы по анатомии и общей химии для сдачи профильных тестов на высший балл."},
+						{Step: "2", Duration: "2 месяца", Title: "Первая медицинская помощь и волонтерство", Description: "Пройди курсы первой помощи от Красного Полумесяца и поработай волонтером в медицинских пунктах."},
+						{Step: "3", Duration: "6 месяцев", Title: "Конкурс на грант и поступление", Description: "Подай документы в медицинские вузы на государственный грант (Асфендиярова, МУА) или программы NU."},
+					},
+					Professions: []Recommendation{
+						{Name: "Medical Doctor", Description: "Лечение пациентов, хирургия, терапия и педиатрия.", MatchPercentage: 96},
+						{Name: "Biotech Specialist", Description: "Разработка инновационных лекарственных препаратов.", MatchPercentage: 81},
+						{Name: "Civil Engineer", Description: "Проектирование безопасной экологичной инфраструктуры.", MatchPercentage: 65},
+					},
+					Grants: []Recommendation{
+						{Name: "Грант Назарбаев Университета (NU)", Description: "Школа медицины Назарбаев Университета (NUSOM).", MatchPercentage: 95},
+						{Name: "Болашак", Description: "Магистратура и резидентура за рубежом в ведущих клиниках мира.", MatchPercentage: 90},
+						{Name: "Turkiye Burslari", Description: "Обучение медицине на гранте в Турции.", MatchPercentage: 81},
+					},
+				}
+			}
+
+		case "engineering":
+			if leisure == "gadgets" {
+				result = AnalysisResult{
+					TopProf: "Robotics Engineer",
+					Summary: "Роботы — это будущее промышленности. Твоя техническая страсть к гаджетам в сочетании с инженерным мышлением позволит тебе программировать контроллеры и собирать сложные автоматизированные системы.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "2 месяца", Title: "Основы электроники и Arduino", Description: "Изучи основы схемотехники, закон Ома и начни собирать первые проекты на базе Arduino."},
+						{Step: "2", Duration: "3 месяца", Title: "Программирование микроконтроллеров", Description: "Изучи базовый C/C++ для написания прошивок и пойми принципы работы датчиков и сервоприводов."},
+						{Step: "3", Duration: "6 месяцев", Title: "3D-моделирование и CAD-системы", Description: "Научись моделировать детали в SolidWorks или Fusion 360, распечатай их на 3D-принтере и собери своего первого робота."},
+					},
+					Professions: []Recommendation{
+						{Name: "Robotics Engineer", Description: "Проектирование и программирование автоматизированных роботизированных систем.", MatchPercentage: 94},
+						{Name: "Civil Engineer", Description: "Расчет прочности конструкций и чертежи зданий.", MatchPercentage: 83},
+						{Name: "Software Engineer", Description: "Написание программного обеспечения для управления железом.", MatchPercentage: 80},
+					},
+					Grants: []Recommendation{
+						{Name: "KBTU Olympiad Grant", Description: "Гранты в КБТУ на мехатронику и робототехнику.", MatchPercentage: 91},
+						{Name: "AITU Talent Grant", Description: "Гранты на инженерные IT-направления в Astana IT University.", MatchPercentage: 87},
+						{Name: "Yessenov Foundation Grant", Description: "Гранты на стажировки в технических хабах мира.", MatchPercentage: 82},
+					},
+				}
+			} else {
+				result = AnalysisResult{
+					TopProf: "Civil Engineer",
+					Summary: "Классическая и фундаментальная инженерная специальность. Твой интерес к физике и конструированию позволит тебе проектировать современные города, жилые комплексы, дороги и мосты.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "2 месяца", Title: "Основы физики и механики", Description: "Углубись в разделы статики и сопротивления материалов (сопромат) для понимания распределения нагрузок."},
+						{Step: "2", Duration: "3 месяца", Title: "Программы черчения (AutoCAD/Revit)", Description: "Научись создавать двухмерные чертежи и строить 3D-информационные модели зданий (BIM)."},
+						{Step: "3", Duration: "6 месяцев", Title: "Стажировка на стройплощадке", Description: "Пройди летнюю стажировку в строительной или архитектурной компании, чтобы увидеть работу чертежей вживую."},
+					},
+					Professions: []Recommendation{
+						{Name: "Civil Engineer", Description: "Расчет нагрузок, составление смет и руководство строительными объектами.", MatchPercentage: 95},
+						{Name: "Robotics Engineer", Description: "Проектирование манипуляторов и механизмов.", MatchPercentage: 80},
+						{Name: "UX/UI Designer", Description: "Проектирование эргономики пространств (дизайн интерьеров).", MatchPercentage: 70},
+					},
+					Grants: []Recommendation{
+						{Name: "Грант Назарбаев Университета (NU)", Description: "Обучение в Школе инженерии и цифровых наук NU.", MatchPercentage: 90},
+						{Name: "Болашак", Description: "Магистратура в лучших строительных и архитектурных школах мира.", MatchPercentage: 85},
+						{Name: "Turkiye Burslari", Description: "Полные гранты на гражданскую инженерию в Турции.", MatchPercentage: 81},
+					},
+				}
 			}
 		}
 
@@ -272,7 +551,6 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			UpdatedAt: time.Now(),
 		})
 
-		c.JSON(http.StatusOK, result)
 	}
 }
 
