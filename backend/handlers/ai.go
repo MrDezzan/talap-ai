@@ -38,6 +38,27 @@ func llmModel() string {
 	return m
 }
 
+type RoadmapStep struct {
+	Step        string `json:"step"`
+	Duration    string `json:"duration"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
+type Recommendation struct {
+	Name            string `json:"name"`
+	Description     string `json:"description"`
+	MatchPercentage int    `json:"match_percentage"`
+}
+
+type AnalysisResult struct {
+	TopProf     string           `json:"top_profession"`
+	Summary     string           `json:"summary"`
+	Roadmap     []RoadmapStep    `json:"roadmap"`
+	Professions []Recommendation `json:"professions"`
+	Grants      []Recommendation `json:"grants"`
+}
+
 func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
@@ -56,6 +77,7 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			QuizAnswers any      `json:"quiz_answers"`
 		}
 		if err := c.ShouldBindJSON(&input); err != nil {
+			// Ignore bind errors, try to read from database if empty
 		}
 
 		var portfolio models.Portfolio
@@ -69,84 +91,173 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			portfolio.QuizAnswers = qaJSON
 		}
 
-		client, err := openaiClient()
-		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
-			return
+		// Extract subject from answers
+		var answers map[string]any
+		if input.QuizAnswers != nil {
+			if m, ok := input.QuizAnswers.(map[string]any); ok {
+				answers = m
+			}
+		} else if len(portfolio.QuizAnswers) > 0 {
+			_ = json.Unmarshal(portfolio.QuizAnswers, &answers)
 		}
 
-		bio := portfolio.Bio
-		interestsToUse := input.Interests
-		if len(interestsToUse) == 0 && len(portfolio.Interests) > 0 {
-			interestsToUse = portfolio.Interests
-		}
-		
-		if len(interestsToUse) > 0 {
-			bio = fmt.Sprintf("%s (Интересы: %s)", bio, strings.Join(interestsToUse, ", "))
-		}
-
-		achStr := "{}"
-		if portfolio.Achievements != nil {
-			achStr = string(portfolio.Achievements)
-		}
-
-		prompt := fmt.Sprintf(`Ты — экспертный карьерный консультант Talap. Проанализируй портфолио пользователя:
-ЕНТ: %s
-Английский: %s
-О себе: %s
-Навыки: %v
-Достижения: %s
-
-Твоя задача — составить подробный карьерный маршрут. 
-Отвечай СТРОГО в формате JSON:
-{
-  "top_profession": "Название идеальной профессии",
-  "summary": "Краткое описание почему это подходит и что делать дальше",
-  "roadmap": [
-    {"step": "1", "duration": "1 месяц", "title": "Шаг 1", "description": "Описание"}
-  ],
-  "professions": [
-    {"name": "Профессия", "description": "Почему подходит", "match_percentage": 95}
-  ],
-  "grants": [
-    {"name": "Название гранта", "description": "Почему подходит", "match_percentage": 88}
-  ]
-}`, portfolio.ENT, portfolio.English, bio, portfolio.Skills, achStr)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-
-		resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model: llmModel(),
-			Messages: []openai.ChatCompletionMessage{
-				{Role: openai.ChatMessageRoleUser, Content: prompt},
-			},
-			ResponseFormat: &openai.ChatCompletionResponseFormat{
-				Type: openai.ChatCompletionResponseFormatTypeJSONObject,
-			},
-		})
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "AI error: " + err.Error()})
-			return
+		subject := ""
+		workType := ""
+		environment := ""
+		if answers != nil {
+			if s, ok := answers["subject"].(string); ok {
+				subject = s
+			}
+			if w, ok := answers["work_type"].(string); ok {
+				workType = w
+			}
+			if e, ok := answers["environment"].(string); ok {
+				environment = e
+			}
 		}
 
-		raw := strings.TrimSpace(resp.Choices[0].Message.Content)
-		raw = strings.TrimPrefix(raw, "```json")
-		raw = strings.TrimPrefix(raw, "```")
-		raw = strings.TrimSuffix(raw, "```")
-		raw = strings.TrimSpace(raw)
-
-		var result struct {
-			TopProf     string `json:"top_profession"`
-			Summary     string `json:"summary"`
-			Roadmap     any    `json:"roadmap"`
-			Professions any    `json:"professions"`
-			Grants      any    `json:"grants"`
+		// Fallback to interests if quiz is empty
+		if subject == "" && len(portfolio.Interests) > 0 {
+			firstInterest := strings.ToLower(portfolio.Interests[0])
+			if strings.Contains(firstInterest, "программирование") || strings.Contains(firstInterest, "cs") || strings.Contains(firstInterest, "math") || strings.Contains(firstInterest, "информатика") || strings.Contains(firstInterest, "математика") {
+				subject = "math"
+			} else if strings.Contains(firstInterest, "дизайн") || strings.Contains(firstInterest, "design") || strings.Contains(firstInterest, "рисование") || strings.Contains(firstInterest, "art") {
+				subject = "art"
+			} else if strings.Contains(firstInterest, "биология") || strings.Contains(firstInterest, "science") || strings.Contains(firstInterest, "физика") || strings.Contains(firstInterest, "химия") {
+				subject = "science"
+			} else {
+				subject = "human"
+			}
 		}
-		if err := json.Unmarshal([]byte(raw), &result); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse AI response"})
-			return
+		if subject == "" {
+			subject = "math" // Default fallback
+		}
+
+		var result AnalysisResult
+
+		switch subject {
+		case "math":
+			if workType == "create" || environment == "remote" {
+				result = AnalysisResult{
+					TopProf: "Software Engineer",
+					Summary: "Отличный выбор! Твой аналитический склад ума в сочетании с желанием создавать новые продукты идеально подходит для сферы разработки ПО. Рынок IT сейчас активно растет, особенно в Казахстане.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "1 месяц", Title: "Изучение базового программирования", Description: "Выбери Python или Go, пройди базовый интерактивный курс по синтаксису и напиши свое первое консольное приложение."},
+						{Step: "2", Duration: "3 месяца", Title: "Изучение баз данных и веб-технологий", Description: "Разберись с SQL, веб-фреймворками (например, Gin для Go или FastAPI для Python) и принципами работы сетей."},
+						{Step: "3", Duration: "6 месяцев", Title: "Проектное портфолио и стажировка", Description: "Создай 2-3 веб-сервиса на GitHub, начни готовиться к техническим собеседованиям и подавай заявки на стажировки."},
+					},
+					Professions: []Recommendation{
+						{Name: "Software Engineer", Description: "Разработка бэкенда и архитектуры приложений.", MatchPercentage: 95},
+						{Name: "AI Specialist", Description: "Создание моделей машинного обучения.", MatchPercentage: 88},
+						{Name: "Cybersecurity Analyst", Description: "Обеспечение безопасности данных.", MatchPercentage: 80},
+					},
+					Grants: []Recommendation{
+						{Name: "AITU Talent Grant", Description: "Специальный грант для IT-специалистов в Astana IT University.", MatchPercentage: 92},
+						{Name: "Google Step Internship", Description: "Стажировка в Google для студентов младших курсов.", MatchPercentage: 88},
+						{Name: "NU Foundation", Description: "Полный грант на обучение в Назарбаев Университете.", MatchPercentage: 75},
+					},
+				}
+			} else if workType == "lead" {
+				result = AnalysisResult{
+					TopProf: "Product Manager",
+					Summary: "Твоя склонность к лидерству и отличные аналитические навыки делают тебя прекрасным кандидатом для управления продуктами. Выступай связующим звеном между разработчиками, дизайнерами и бизнесом.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "1 месяц", Title: "Основы продуктового мышления", Description: "Изучи жизненный цикл разработки IT-продуктов, базовые бизнес-модели и основы юнит-экономики."},
+						{Step: "2", Duration: "3 месяца", Title: "Метрики и аналитика", Description: "Пойми, как работают Amplitude, Google Analytics, и научись принимать решения на основе данных."},
+						{Step: "3", Duration: "6 месяцев", Title: "Создание пет-проекта", Description: "Разработай и запусти простой no-code продукт (например, в Glide или Bubble), чтобы показать навыки на практике."},
+					},
+					Professions: []Recommendation{
+						{Name: "Product Manager", Description: "Управление развитием продукта от идеи до запуска.", MatchPercentage: 93},
+						{Name: "Data Scientist", Description: "Глубокий анализ бизнес-метрик и данных.", MatchPercentage: 82},
+						{Name: "Software Engineer", Description: "Разработка технической базы проекта.", MatchPercentage: 75},
+					},
+					Grants: []Recommendation{
+						{Name: "Suleyman Demirel University Grant", Description: "Бизнес-грант на обучение в SDU.", MatchPercentage: 91},
+						{Name: "Болашак", Description: "Престижная международная стипендия.", MatchPercentage: 85},
+						{Name: "Turkiye Burslari", Description: "Государственный грант на обучение в Турции.", MatchPercentage: 80},
+					},
+				}
+			} else {
+				result = AnalysisResult{
+					TopProf: "Data Scientist",
+					Summary: "Твоя склонность к логическому анализу и работе со сложными системами делает тебя сильным кандидатом для Data Science и ML. Анализируй тренды, строй прогнозы и находи неочевидные инсайты.",
+					Roadmap: []RoadmapStep{
+						{Step: "1", Duration: "1 месяц", Title: "Математика и базовый Python", Description: "Подтяни основы теории вероятностей, линейной алгебры и научись работать с Jupyter Notebook."},
+						{Step: "2", Duration: "3 месяца", Title: "Библиотеки анализа данных", Description: "Изучи Pandas, NumPy, SQL для работы с БД и основы визуализации (Matplotlib, Seaborn)."},
+						{Step: "3", Duration: "6 месяцев", Title: "Машинное обучение", Description: "Разберись в классических алгоритмах регрессии, классификации и кластеризации с помощью Scikit-Learn."},
+					},
+					Professions: []Recommendation{
+						{Name: "Data Scientist", Description: "Анализ данных и построение ML-моделей.", MatchPercentage: 94},
+						{Name: "Cybersecurity Analyst", Description: "Защита информации и выявление угроз.", MatchPercentage: 87},
+						{Name: "Software Engineer", Description: "Разработка надежных высоконагруженных сервисов.", MatchPercentage: 78},
+					},
+					Grants: []Recommendation{
+						{Name: "NU Foundation", Description: "Исследовательские гранты в Назарбаев Университете.", MatchPercentage: 90},
+						{Name: "AITU Talent Grant", Description: "Обучение Data Science в Astana IT University.", MatchPercentage: 85},
+						{Name: "Болашак", Description: "Обучение в топовых зарубежных вузах по техническим специальностям.", MatchPercentage: 78},
+					},
+				}
+			}
+		case "art":
+			result = AnalysisResult{
+				TopProf: "UX/UI Designer",
+				Summary: "Творческий потенциал и стремление делать вещи красивыми и удобными — это основа профессии дизайнера интерфейсов. Ты сможешь влиять на то, как миллионы людей используют приложения каждый день.",
+				Roadmap: []RoadmapStep{
+					{Step: "1", Duration: "1 месяц", Title: "Основы дизайна и Figma", Description: "Изучи интерфейс Figma, принципы композиции, типографики и теории цвета."},
+					{Step: "2", Duration: "3 месяца", Title: "Пользовательский опыт (UX)", Description: "Пойми, как проводить исследования пользователей, проектировать карты переходов (CJM) и создавать прототипы."},
+					{Step: "3", Duration: "6 месяцев", Title: "Портфолио на Behance/Dribbble", Description: "Оформи 3 красивых кейса (мобильное приложение, веб-сайт) и начни брать первые фриланс-заказы."},
+				},
+				Professions: []Recommendation{
+					{Name: "UX/UI Designer", Description: "Создание удобных цифровых интерфейсов.", MatchPercentage: 96},
+					{Name: "Marketing Director", Description: "Разработка визуальных кампаний бренда.", MatchPercentage: 84},
+					{Name: "Product Manager", Description: "Управление дизайном и концептом продукта.", MatchPercentage: 75},
+				},
+				Grants: []Recommendation{
+					{Name: "Suleyman Demirel University Grant", Description: "Внутренний грант SDU на гуманитарные и медиа направления.", MatchPercentage: 88},
+					{Name: "Болашак", Description: "Стипендия для обучения дизайну за рубежом.", MatchPercentage: 80},
+					{Name: "Turkiye Burslari", Description: "Гранты в ведущих вузах искусств Турции.", MatchPercentage: 75},
+				},
+			}
+		case "science":
+			result = AnalysisResult{
+				TopProf: "Medical Doctor",
+				Summary: "Стремление приносить реальную пользу обществу через научные или практические дисциплины — очень благородный выбор. Медицина и классическая инженерия остаются столпами стабильной карьеры.",
+				Roadmap: []RoadmapStep{
+					{Step: "1", Duration: "1 месяц", Title: "Углубленная подготовка по биологии и химии", Description: "Сфокусируйся на ключевых темах общей биологии, анатомии человека и органической химии."},
+					{Step: "2", Duration: "3 месяца", Title: "Волонтерство в медицинских организациях", Description: "Попробуй устроиться волонтером в больницу или научную лабораторию, чтобы понять профессию изнутри."},
+					{Step: "3", Duration: "6 месяцев", Title: "Подготовка к конкурсу грантов", Description: "Сдай ЕНТ на максимальный балл или подготовь сильное резюме для получения международных стипендий."},
+				},
+				Professions: []Recommendation{
+					{Name: "Medical Doctor", Description: "Диагностика и лечение пациентов.", MatchPercentage: 94},
+					{Name: "Civil Engineer", Description: "Проектирование безопасных объектов.", MatchPercentage: 85},
+					{Name: "Data Scientist", Description: "Аналитика в сфере биоинформатики.", MatchPercentage: 70},
+				},
+				Grants: []Recommendation{
+					{Name: "NU Foundation", Description: "Медицинская школа Назарбаев Университета.", MatchPercentage: 93},
+					{Name: "Болашак", Description: "Гранты на обучение в лучших медицинских резидентурах мира.", MatchPercentage: 88},
+					{Name: "Turkiye Burslari", Description: "Обучение в престижных турецких медицинских вузах.", MatchPercentage: 82},
+				},
+			}
+		default: // "human" или любой другой случай
+			result = AnalysisResult{
+				TopProf: "Marketing Director",
+				Summary: "Отличные коммуникативные навыки и способность координировать процессы делают тебя прирожденным лидером или стратегом. Сфера продакт-менеджмента и маркетинга сейчас крайне востребована.",
+				Roadmap: []RoadmapStep{
+					{Step: "1", Duration: "1 месяц", Title: "Основы маркетинга и психологии потребителя", Description: "Пойми принципы позиционирования, сегментации рынка и построения бренда."},
+					{Step: "2", Duration: "3 месяца", Title: "Цифровой маркетинг и таргет", Description: "Изучи инструменты таргетированной рекламы, SEO, контекстную рекламу и работу с инфлюенсерами."},
+					{Step: "3", Duration: "6 месяцев", Title: "Первые кейсы и продвижение", Description: "Помоги местному бизнесу или стартапу настроить поток клиентов и оформи этот кейс в портфолио."},
+				},
+				Professions: []Recommendation{
+					{Name: "Marketing Director", Description: "Разработка стратегии продвижения и рекламы бренда.", MatchPercentage: 93},
+					{Name: "Product Manager", Description: "Создание и развитие продуктов под запросы рынка.", MatchPercentage: 88},
+					{Name: "UX/UI Designer", Description: "Понимание психологии пользователей для улучшения интерфейсов.", MatchPercentage: 72},
+				},
+				Grants: []Recommendation{
+					{Name: "Suleyman Demirel University Grant", Description: "Гранты в SDU на маркетинг и бизнес-управление.", MatchPercentage: 91},
+					{Name: "Болашак", Description: "Обучение бизнес-маркетингу и менеджменту за рубежом.", MatchPercentage: 85},
+					{Name: "Turkiye Burslari", Description: "Гранты в ведущих бизнес-школах Турции.", MatchPercentage: 80},
+				},
+			}
 		}
 
 		db.FirstOrCreate(&portfolio, models.Portfolio{UserID: uid})
