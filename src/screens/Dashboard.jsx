@@ -32,6 +32,19 @@ export default function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const isMobile = useMobile();
 
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+
+  useEffect(() => {
+    const tourSeen = localStorage.getItem('talap_tour_seen');
+    if (!tourSeen && aiProfile && aiProfile.top_profession) {
+      // Small delay to make it smooth after the quiz loader finishes
+      setTimeout(() => {
+        setShowTour(true);
+      }, 500);
+    }
+  }, [aiProfile]);
+
   const firstName = user?.name?.split(' ')[0] || 'Студент';
 
   const stats = aiProfile
@@ -342,6 +355,96 @@ export default function Dashboard() {
           </Mesh>
         </div>
       </div>
+      {showTour && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(10,18,48,0.5)',
+          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 10000, padding: 24
+        }}>
+          <div style={{
+            background: '#FFFFFF', borderRadius: 24, padding: isMobile ? 28 : 40,
+            maxWidth: 440, width: '100%', boxShadow: '0 24px 60px rgba(10,18,48,0.18)',
+            textAlign: 'center', position: 'relative', boxSizing: 'border-box'
+          }}>
+            {/* Tour Slide Content */}
+            {(() => {
+              const slides = [
+                {
+                  icon: 'home',
+                  title: 'Твой дашборд 🏠',
+                  desc: 'Здесь отображается общая сводка по твоим интересам: совместимые специальности, лучшие подходящие гранты и оперативные уведомления от ИИ.'
+                },
+                {
+                  icon: 'compass',
+                  title: 'Каталог профессий 🧭',
+                  desc: 'Изучай подробные карточки специальностей, требования к ним, уровень зарплаты в Казахстане и динамику роста востребованности.'
+                },
+                {
+                  icon: 'award',
+                  title: 'База грантов и стипендий 🎯',
+                  desc: 'Выбирай гранты, подходящие под твои баллы ЕНТ, IELTS и GPA. Нажимай кнопку «Спросить Talap AI» для получения консультации по документам.'
+                },
+                {
+                  icon: 'sparkles',
+                  title: 'Маршруты и ИИ-резюме ⚡',
+                  desc: 'Создавай подробный горизонтальный Roadmap обучения и генерируй профессиональное резюме по мировым стандартам прямо в чате!'
+                }
+              ];
+              const cur = slides[tourStep];
+              const isLast = tourStep === slides.length - 1;
+
+              const next = () => {
+                if (isLast) {
+                  localStorage.setItem('talap_tour_seen', 'true');
+                  setShowTour(false);
+                } else {
+                  setTourStep(tourStep + 1);
+                }
+              };
+
+              return (
+                <>
+                  <div style={{
+                    width: 72, height: 72, borderRadius: 22, margin: '0 auto 24px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: C.blue50, boxShadow: '0 8px 20px rgba(20,72,255,0.06)'
+                  }}>
+                    <Icon name={cur.icon} size={32} color={C.blue} strokeWidth={2} />
+                  </div>
+                  <h3 style={{ fontFamily: C.font, fontSize: 22, fontWeight: 800, color: C.ink900, marginBottom: 12, letterSpacing: '-0.02em' }}>
+                    {cur.title}
+                  </h3>
+                  <p style={{ fontFamily: C.font, fontSize: 14, color: C.ink500, lineHeight: 1.6, marginBottom: 32, minHeight: 70 }}>
+                    {cur.desc}
+                  </p>
+                  
+                  {/* Dots Indicator */}
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
+                    {slides.map((_, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setTourStep(idx)}
+                        style={{
+                          width: idx === tourStep ? 20 : 6,
+                          height: 6,
+                          borderRadius: 3,
+                          background: idx === tourStep ? C.blue : C.blue100,
+                          cursor: 'pointer',
+                          transition: 'all 200ms'
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <Button variant="primary" size="lg" fullWidth onClick={next}>
+                    {isLast ? 'Поехали!' : 'Далее'}
+                  </Button>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

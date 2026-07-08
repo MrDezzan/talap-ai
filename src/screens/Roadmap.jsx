@@ -110,44 +110,90 @@ export default function Roadmap() {
               }
             `}</style>
 
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: 23, top: 40, bottom: 40, width: 2, background: C.blue100 }} />
+            <div style={{ 
+              display: 'flex', 
+              gap: 24, 
+              overflowX: 'auto', 
+              paddingBottom: 28,
+              paddingTop: 12,
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none', /* Firefox */
+              msOverflowStyle: 'none',  /* IE and Edge */
+            }} className="roadmap-scroll-container">
+              
+              <style>{`
+                .roadmap-scroll-container::-webkit-scrollbar {
+                  display: none; /* Chrome, Safari and Opera */
+                }
+              `}</style>
               
               {steps.map((step, i) => (
-                <div key={i} style={{ display: 'flex', gap: 32, marginBottom: 48, position: 'relative' }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 24, background: 'white', border: `2px solid ${C.blue}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1, boxShadow: '0 4px 12px rgba(20,72,255,0.1)'
-                  }}>
-                    <span style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, color: C.blue }}>{i + 1}</span>
+                <div 
+                  key={i} 
+                  style={{ 
+                    flex: '0 0 320px', 
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  {/* Step Circle & Connector */}
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 22, background: 'white', border: `2px solid ${C.blue}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1, 
+                      boxShadow: '0 4px 12px rgba(20,72,255,0.1)', flexShrink: 0
+                    }}>
+                      <span style={{ fontFamily: C.font, fontSize: 16, fontWeight: 800, color: C.blue }}>{i + 1}</span>
+                    </div>
+                    {i < steps.length - 1 && (
+                      <div style={{ 
+                        flex: 1, 
+                        height: 2, 
+                        background: C.blue100, 
+                        marginLeft: 12, 
+                        marginRight: -12,
+                        position: 'relative'
+                      }}>
+                        {/* Arrowhead */}
+                        <div style={{
+                          position: 'absolute', right: 0, top: -4, width: 8, height: 8,
+                          borderTop: `2px solid ${C.blue100}`, borderRight: `2px solid ${C.blue100}`,
+                          transform: 'rotate(45deg)'
+                        }} />
+                      </div>
+                    )}
                   </div>
                   
-                  <div style={{ flex: 1 }}>
-                    <Card style={{ padding: 24 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                        <h3 style={{ fontFamily: C.font, fontSize: 18, fontWeight: 700, color: C.ink900, margin: 0 }}>{step.title}</h3>
+                  {/* Step Card */}
+                  <Card style={{ padding: 24, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 240 }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 8 }}>
+                        <h3 style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, margin: 0, lineHeight: 1.3 }}>{step.title}</h3>
                         {step.duration && (
-                          <div style={{ padding: '4px 10px', borderRadius: 6, background: C.blue50, color: C.blue, fontFamily: '"Geist Mono",monospace', fontSize: 12, fontWeight: 700 }}>
+                          <div style={{ padding: '3px 8px', borderRadius: 6, background: C.blue50, color: C.blue, fontFamily: '"Geist Mono",monospace', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                             {step.duration}
                           </div>
                         )}
                       </div>
-                      <p style={{ fontFamily: C.font, fontSize: 14, lineHeight: '22px', color: C.ink700, margin: 0 }}>
+                      <p style={{ fontFamily: C.font, fontSize: 13, lineHeight: '20px', color: C.ink700, margin: 0 }}>
                         {step.description}
                       </p>
-                      
-                      {step.resources && (
-                        <div style={{ marginTop: 20, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {step.resources.map((res, j) => (
-                            <div key={j} style={{ padding: '6px 12px', borderRadius: 8, background: C.mist, border: `1px solid ${C.hairline}`, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                              <Icon name="compass" size={14} color={C.ink500} />
-                              <span style={{ fontFamily: C.font, fontSize: 12, fontWeight: 600, color: C.ink700 }}>{res}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </Card>
-                  </div>
+                    </div>
+                    
+                    {step.resources && (
+                      <div style={{ marginTop: 16, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {step.resources.map((res, j) => (
+                          <div key={j} style={{ padding: '4px 8px', borderRadius: 6, background: C.mist, border: `1px solid ${C.hairline}`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon name="compass" size={11} color={C.ink500} />
+                            <span style={{ fontFamily: C.font, fontSize: 11, fontWeight: 600, color: C.ink700 }}>{res}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
                 </div>
               ))}
             </div>
