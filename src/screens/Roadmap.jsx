@@ -29,14 +29,86 @@ export default function Roadmap() {
       <div style={{ padding: isMobile ? '16px' : '40px', maxWidth: 800, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {steps.length > 0 ? (
           <>
-            <div style={{ marginBottom: 40 }}>
-              <div style={{ fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                {t('dash_roadmap_title')}
+            <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }} className="no-print">
+              <div>
+                <div style={{ fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                  {t('dash_roadmap_title')}
+                </div>
+                <h1 style={{ fontFamily: C.font, fontSize: 32, fontWeight: 800, color: C.ink900, letterSpacing: '-0.03em', margin: 0 }}>
+                  {aiProfile.top_profession}
+                </h1>
               </div>
-              <h1 style={{ fontFamily: C.font, fontSize: 32, fontWeight: 800, color: C.ink900, letterSpacing: '-0.03em', margin: 0 }}>
-                {aiProfile.top_profession}
-              </h1>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={() => {
+                    const text = `Мой карьерный путь в направлении "${aiProfile.top_profession}" построен с помощью Talap AI! 🚀\nПройди тест и построй свой роадмап: ${window.location.origin}`;
+                    navigator.clipboard.writeText(text);
+                    alert(lang === 'ru' ? 'Ссылка скопирована в буфер обмена!' : 'Сілтеме буферге көшірілді!');
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 12,
+                    background: '#FFFFFF', border: `1px solid ${C.hairline}`, cursor: 'pointer',
+                    fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.ink700,
+                    transition: 'all 200ms'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.blue50}
+                  onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                >
+                  <Icon name="globe" size={16} color={C.blue} />
+                  {lang === 'ru' ? 'Поделиться' : 'Бөлісу'}
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 12,
+                    background: C.blue, border: 'none', cursor: 'pointer',
+                    fontFamily: C.font, fontSize: 14, fontWeight: 700, color: '#FFFFFF',
+                    transition: 'all 200ms', boxShadow: '0 4px 12px rgba(20,72,255,0.2)'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <Icon name="compass" size={16} color="#FFFFFF" />
+                  {lang === 'ru' ? 'Скачать PDF' : 'PDF жүктеу'}
+                </button>
+              </div>
             </div>
+
+            {/* Print Only Header */}
+            <div className="print-only" style={{ display: 'none', marginBottom: 30, borderBottom: `2px solid ${C.blue}`, paddingBottom: 20 }}>
+              <h1 style={{ fontFamily: C.font, fontSize: 28, fontWeight: 800, color: C.ink900, marginBottom: 8 }}>
+                Talap AI — Персональный карьерный путь
+              </h1>
+              <div style={{ fontFamily: C.font, fontSize: 16, color: C.ink700 }}>
+                Рекомендуемая специальность: <strong>{aiProfile.top_profession}</strong>
+              </div>
+            </div>
+
+            {/* Print-specific style tag */}
+            <style>{`
+              @media print {
+                body {
+                  background: #FFFFFF !important;
+                  color: #000000 !important;
+                }
+                .no-print, header, nav, aside, .TopBar, button, .sidebar-container, .topbar-container {
+                  display: none !important;
+                }
+                .print-only {
+                  display: block !important;
+                }
+                main, .content-container {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100% !important;
+                }
+                .card-container, div[style*="Card"] {
+                  border: 1px solid #CCCCCC !important;
+                  box-shadow: none !important;
+                  page-break-inside: avoid;
+                }
+              }
+            `}</style>
 
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'absolute', left: 23, top: 40, bottom: 40, width: 2, background: C.blue100 }} />
