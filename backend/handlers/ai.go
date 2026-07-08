@@ -547,8 +547,10 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		db.FirstOrCreate(&portfolio, models.Portfolio{UserID: uid})
 		resJSON, _ := json.Marshal(result)
 		db.Model(&portfolio).Updates(models.Portfolio{
-			AIResult:  resJSON,
-			UpdatedAt: time.Now(),
+			Interests:   portfolio.Interests,
+			QuizAnswers: portfolio.QuizAnswers,
+			AIResult:    resJSON,
+			UpdatedAt:   time.Now(),
 		})
 
 		c.JSON(http.StatusOK, result)
