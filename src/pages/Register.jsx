@@ -16,9 +16,40 @@ const C = {
   font: 'var(--font-sans)',
 };
 
-function Field({ label, type = 'text', value, onChange, placeholder, error, hint, autoFocus }) {
+function Field({ label, type = 'text', value, onChange, placeholder, error, hint, autoFocus, lang }) {
   const [focused, setFocused] = useState(false);
   const isMobile = useMobile();
+  const isPassword = type === 'password';
+
+  const checkPasswordStrength = (pass) => {
+    if (!pass) return { score: 0, text: '', color: '#E4E8F1' };
+    let score = 0;
+    if (pass.length >= 6) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[a-z]/.test(pass) && /[A-Z]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    let text = 'Очень слабый';
+    let color = '#B42318';
+    if (lang === 'en') text = 'Very weak';
+    if (lang === 'kz') text = 'Өте әлсіз';
+
+    if (score === 2) {
+      text = lang === 'en' ? 'Weak' : lang === 'kz' ? 'Әлсіз' : 'Слабый';
+      color = '#F3A13B';
+    } else if (score === 3) {
+      text = lang === 'en' ? 'Medium' : lang === 'kz' ? 'Орташа' : 'Средний';
+      color = '#F1C40F';
+    } else if (score === 4) {
+      text = lang === 'en' ? 'Strong' : lang === 'kz' ? 'Күшті' : 'Сильный';
+      color = '#047857';
+    }
+
+    return { score, text, color };
+  };
+
+  const strength = isPassword ? checkPasswordStrength(value) : null;
+
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.ink700, display: 'block', marginBottom: 6 }}>
@@ -41,8 +72,31 @@ function Field({ label, type = 'text', value, onChange, placeholder, error, hint
           boxSizing: 'border-box',
         }}
       />
+      
+      {/* Password Strength Indicator */}
+      {isPassword && value && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <span style={{ fontFamily: C.font, fontSize: 11, fontWeight: 600, color: C.ink500 }}>
+              {lang === 'en' ? 'Password strength' : lang === 'kz' ? 'Құпия сөздің күрделілігі' : 'Сложность пароля'}:
+            </span>
+            <span style={{ fontFamily: C.font, fontSize: 11, fontWeight: 700, color: strength.color }}>
+              {strength.text}
+            </span>
+          </div>
+          <div style={{ height: 4, width: '100%', background: C.mist, borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ 
+              height: '100%', 
+              width: `${(strength.score / 4) * 100}%`, 
+              background: strength.color,
+              transition: 'width 250ms ease-in-out, background-color 250ms'
+            }} />
+          </div>
+        </div>
+      )}
+
       {error && <div style={{ fontFamily: C.font, fontSize: 12, color: C.error700, marginTop: 4 }}>{error}</div>}
-      {hint && !error && <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink500, marginTop: 4 }}>{hint}</div>}
+      {hint && !error && !isPassword && <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink500, marginTop: 4 }}>{hint}</div>}
     </div>
   );
 }
@@ -254,7 +308,11 @@ export default function Register() {
     if (!form.email) e.email = t('auth_error_email') || 'Введи email';
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('auth_error_email_invalid') || 'Некорректный email';
     if (!form.password) e.password = t('auth_error_pass') || 'Придумай пароль';
-    else if (form.password.length < 6) e.password = t('auth_error_pass_short') || 'Минимум 6 символов';
+    else if (form.password.length < 6) {
+      e.password = lang === 'en' ? 'Password must be at least 6 characters' : 
+                   lang === 'kz' ? 'Құпия сөз кемінде 6 таңбадан тұруы керек' : 
+                   'Пароль должен быть не менее 6 символов';
+    }
     return e;
   };
 
@@ -464,9 +522,9 @@ export default function Register() {
       }}>
         {step === 0 && (
           <>
-            <Field label={t('auth_name_label')} value={form.name} onChange={set('name')} placeholder="Айдана Серикова" error={errors.name} autoFocus />
-            <Field label={t('auth_email_label')} type="email" value={form.email} onChange={set('email')} placeholder="твой@email.kz" error={errors.email} />
-            <Field label={t('auth_pass_label')} type="password" value={form.password} onChange={set('password')} placeholder="••••••••" error={errors.password} hint={lang === 'en' ? 'Use letters and digits' : lang === 'kz' ? 'Әріптер мен сандарды қолданыңыз' : 'Используй буквы и цифры'} />
+            <Field label={t('auth_name_label')} value={form.name} onChange={set('name')} placeholder="Айдана Серикова" error={errors.name} lang={lang} autoFocus />
+            <Field label={t('auth_email_label')} type="email" value={form.email} onChange={set('email')} placeholder="твой@email.kz" error={errors.email} lang={lang} />
+            <Field label={t('auth_pass_label')} type="password" value={form.password} onChange={set('password')} placeholder="••••••••" error={errors.password} lang={lang} hint={lang === 'en' ? 'Use letters and digits' : lang === 'kz' ? 'Әріптер мен сандарды қолданыңыз' : 'Используй буквы и цифры'} />
           </>
         )}
 
