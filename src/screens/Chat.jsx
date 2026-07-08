@@ -65,10 +65,16 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
-    if (threads.length > 0 && !activeThreadId) {
-      setActiveThreadId(threads[0].id);
+    if (threads.length > 0) {
+      if (!activeThreadId) {
+        setActiveThreadId(threads[0].id);
+      }
+    } else if (!activeThreadId) {
+      const tmpId = Date.now();
+      setActiveThreadId(tmpId);
+      setMessages(prev => ({ ...prev, [tmpId]: [] }));
     }
-  }, [threads]);
+  }, [threads, activeThreadId]);
 
   useEffect(() => {
     if (activeThreadId) {

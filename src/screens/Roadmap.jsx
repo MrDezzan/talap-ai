@@ -27,7 +27,7 @@ export default function Roadmap() {
       <TopBar title={t('nav_roadmap')} />
 
       <div style={{ padding: isMobile ? '16px' : '40px', maxWidth: 800, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        {steps.length > 3 ? (
+        {steps.length > 0 ? (
           <>
             <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }} className="no-print">
               <div>
@@ -72,6 +72,56 @@ export default function Roadmap() {
                   {lang === 'ru' ? 'Скачать PDF' : 'PDF жүктеу'}
                 </button>
               </div>
+            </div>
+
+            {/* Premium Custom / Basic roadmap banner */}
+            <div className="no-print" style={{
+              background: steps.length <= 5 ? '#FFFFFF' : C.blue50,
+              border: `1px solid ${steps.length <= 5 ? C.hairline : C.blue100}`,
+              borderRadius: 16,
+              padding: '16px 24px',
+              marginBottom: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 16,
+              boxShadow: '0 4px 20px rgba(10,18,48,0.02)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: steps.length <= 5 ? C.blue50 : '#FFFFFF',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  <Icon name="sparkles" size={20} color={C.blue} />
+                </div>
+                <div>
+                  <div style={{ fontFamily: C.font, fontSize: 15, fontWeight: 700, color: C.ink900, marginBottom: 2 }}>
+                    {steps.length <= 5 ? 'Доступен индивидуальный путь' : 'Индивидуальный путь построен'}
+                  </div>
+                  <div style={{ fontFamily: C.font, fontSize: 13, color: C.ink500, lineHeight: 1.4 }}>
+                    {steps.length <= 5 
+                      ? 'Вам показан базовый план. Запустите ИИ-интервью для генерации персональной пошаговой карты обучения.'
+                      : 'Ваш карьерный путь детально прописан искусственным интеллектом под ваши личные цели.'}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant={steps.length <= 5 ? 'primary' : 'outline'}
+                size="md"
+                onClick={() => {
+                  const prof = aiProfile?.top_profession || 'своей будущей специальности';
+                  localStorage.setItem('talap_chat_prefill', `Привет! Я хочу составить подробный карьерный роадмап по направлению "${prof}". Проведи со мной интервью: задавай вопросы по очереди о моих целях и текущих навыках, а затем сгенерируй крутой роадмап.`);
+                  navigate('/chat');
+                }}
+                style={{
+                  boxShadow: steps.length <= 5 ? '0 4px 12px rgba(20,72,255,0.15)' : 'none',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {steps.length <= 5 ? 'Создать индивидуальный роадмап' : 'Обновить в чате'}
+              </Button>
             </div>
 
             {/* Print Only Header */}
