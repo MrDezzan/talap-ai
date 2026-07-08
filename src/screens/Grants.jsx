@@ -22,9 +22,15 @@ const C = {
 };
 
 function GrantDetailModal({ grant, onClose, t, lang }) {
-  const navigate = useNavigate();
   if (!grant) return null;
+  const navigate = useNavigate();
   const tags = grant.tags || ['Грант'];
+
+  const askAI = () => {
+    localStorage.setItem('talap_chat_prefill', `Расскажи подробнее про требования и процесс подачи документов на грант "${grant.name}". Как мне лучше подготовиться и написать мотивационное эссе?`);
+    navigate('/chat');
+  };
+
   return (
     <div
       onClick={onClose}
@@ -60,8 +66,8 @@ function GrantDetailModal({ grant, onClose, t, lang }) {
         <div style={{ padding: 32 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
             {[
-              { label: t('grants_amount'), value: grant.amount },
-              { label: t('grants_deadline'), value: `${grant.deadline_days} ${t('days') || 'дн.'}`, tone: grant.tone === 'warn' ? 'warn' : null },
+              { label: t('grants_amount') || 'Сумма', value: grant.amount },
+              { label: t('grants_deadline') || 'Дедлайн', value: `${grant.deadline_days} ${t('days') || 'дн.'}`, tone: grant.tone === 'warn' ? 'warn' : null },
               { label: 'Match', value: `${grant.match_percentage}%`, tone: 'success' },
             ].map((s, i) => (
               <div key={i} style={{ background: C.mist, borderRadius: 10, padding: 14 }}>
@@ -74,31 +80,33 @@ function GrantDetailModal({ grant, onClose, t, lang }) {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, marginBottom: 8 }}>{t('grants_about')}</div>
+            <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, marginBottom: 8 }}>{t('grants_about') || 'Описание'}</div>
             <p style={{ fontFamily: C.font, fontSize: 14, lineHeight: '22px', color: C.ink700, margin: 0 }}>{grant.description}</p>
           </div>
 
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, marginBottom: 12 }}>{t('grants_requirements')}</div>
-            {(grant.requirements || grant.tags || []).map((r, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i ? `1px solid ${C.hairline}` : 'none' }}>
-                <div style={{ width: 20, height: 20, borderRadius: 9999, background: C.blue100, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="check" size={10} color={C.blue} strokeWidth={2.5} />
-                </div>
-                <span style={{ fontFamily: C.font, fontSize: 14, color: C.ink900 }}>{r}</span>
-              </div>
-            ))}
-          </div>
+          {grant.requirements && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, marginBottom: 8 }}>Требования к кандидатам</div>
+              <p style={{ fontFamily: C.font, fontSize: 14, lineHeight: '22px', color: C.ink700, margin: 0 }}>{grant.requirements}</p>
+            </div>
+          )}
 
-          <div style={{ borderRadius: 12, padding: 16, marginBottom: 24, background: C.mist }}>
+          {grant.documents && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, marginBottom: 8 }}>Необходимые документы</div>
+              <p style={{ fontFamily: C.font, fontSize: 14, lineHeight: '22px', color: C.ink700, margin: 0 }}>{grant.documents}</p>
+            </div>
+          )}
+
+          <div style={{ borderRadius: 12, padding: 16, marginBottom: 28, background: C.blue50, border: `1px solid ${C.blue100}` }}>
             <div style={{ display: 'flex', gap: 10 }}>
               <div style={{ width: 28, height: 28, borderRadius: 9999, background: 'white', boxShadow: '0 0 0 3px rgba(20,72,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="sparkles" size={14} color={C.blue} strokeWidth={2} />
               </div>
               <div>
-                <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900 }}>{t('grants_ai_tip')}</div>
+                <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900 }}>Нужна помощь в подготовке документов?</div>
                 <div style={{ fontFamily: C.font, fontSize: 13, lineHeight: '20px', color: C.ink700, marginTop: 2 }}>
-                  {lang === 'ru' ? 'Вы можете проконсультироваться с Talap AI по требованиям и подготовке к подаче на этот грант.' : 'Осы грантқа құжат тапсыру бойынша Talap AI кеңесшісінен сұрай аласыз.'}
+                  Наш AI-советник поможет написать мотивационное эссе, составить резюме и подготовиться к отбору на этот грант.
                 </div>
               </div>
             </div>
@@ -106,25 +114,38 @@ function GrantDetailModal({ grant, onClose, t, lang }) {
 
           <div style={{ display: 'flex', gap: 12 }}>
             <button
-              onClick={() => {
-                const msg = `Привет! Расскажи подробнее про требования и процесс подачи документов на грант "${grant.name}". Что мне нужно подготовить в первую очередь?`;
-                navigate('/chat', { state: { initialMessage: msg } });
-              }}
+              onClick={askAI}
               style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 20px', borderRadius: 14,
-                background: '#FFFFFF', border: `2px solid ${C.blue}`, cursor: 'pointer',
-                fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.blue,
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 20px', borderRadius: 12,
+                background: '#FFFFFF', border: `1px solid ${C.blue}`, cursor: 'pointer',
+                fontFamily: C.font, fontSize: 15, fontWeight: 700, color: C.blue,
                 transition: 'all 200ms'
               }}
               onMouseEnter={e => e.currentTarget.style.background = C.blue50}
               onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
             >
-              <Icon name="sparkles" size={18} color={C.blue} />
-              {lang === 'ru' ? 'Спросить у ИИ' : 'ИИ-дан сұрау'}
+              <Icon name="sparkles" size={16} color={C.blue} />
+              Спросить Talap AI
             </button>
-            <div style={{ flex: 1.5 }}>
-              <Button variant="primary" size="lg" fullWidth icon="arrowRight">{t('grants_apply')}</Button>
-            </div>
+            
+            {grant.link && (
+              <a
+                href={grant.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '14px 20px', borderRadius: 12,
+                  background: C.blue, border: 'none', cursor: 'pointer', textDecoration: 'none',
+                  fontFamily: C.font, fontSize: 15, fontWeight: 700, color: '#FFFFFF',
+                  transition: 'all 200ms', boxShadow: '0 4px 12px rgba(20,72,255,0.2)'
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                Официальный сайт
+                <Icon name="arrowRight" size={16} color="#FFFFFF" />
+              </a>
+            )}
           </div>
         </div>
       </div>

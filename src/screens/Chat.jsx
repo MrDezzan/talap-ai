@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useMobile } from '../hooks/useMobile';
 import Icon from '../components/Icon';
 import Chip from '../components/Chip';
@@ -52,7 +51,6 @@ export default function Chat() {
   const { user, aiProfile } = useAuth();
   const { t } = useLanguage();
   const isMobile = useMobile();
-  const location = useLocation();
   const { 
     threads, fetchThreads, activeThreadId, setActiveThreadId, 
     messages: allMessages, addMessage, fetchMessages, setMessages,
@@ -65,19 +63,6 @@ export default function Chat() {
   useEffect(() => {
     fetchThreads();
   }, []);
-
-  useEffect(() => {
-    if (location.state?.initialMessage) {
-      const msg = location.state.initialMessage;
-      // Clear state so it doesn't resend on refresh/HMR
-      window.history.replaceState({}, document.title);
-      
-      // Delay slightly to ensure thread is ready/selected
-      setTimeout(() => {
-        send(msg);
-      }, 600);
-    }
-  }, [location.state]);
 
   useEffect(() => {
     if (threads.length > 0 && !activeThreadId) {
@@ -150,6 +135,17 @@ export default function Chat() {
     }
   };
 
+  useEffect(() => {
+    const prefill = localStorage.getItem('talap_chat_prefill');
+    if (prefill && activeThreadId && !isTyping) {
+      localStorage.removeItem('talap_chat_prefill');
+      // Wait slightly to ensure state is ready
+      setTimeout(() => {
+        send(prefill);
+      }, 300);
+    }
+  }, [activeThreadId, messages.length]);
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -196,14 +192,57 @@ export default function Chat() {
         <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: isMobile ? '16px 0' : '40px 0', minHeight: 0 }}>
           <div style={{ maxWidth: 720, margin: '0 auto', padding: isMobile ? '0 16px' : '0 24px' }}>
             {messages.length === 0 && (
-              <div style={{ textAlign: 'center', marginTop: 40 }}>
+              <div style={{ textAlign: 'center', marginTop: isMobile ? 20 : 40, padding: isMobile ? '0 8px' : '0' }}>
                 <div style={{ width: 64, height: 64, borderRadius: 20, margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', boxShadow: '0 8px 24px rgba(10,18,48,0.06)' }}>
                   <Icon name="sparkles" size={32} color={C.blue} strokeWidth={2} />
                 </div>
-                <h2 style={{ fontFamily: C.font, fontSize: 24, fontWeight: 800, color: C.ink900, marginBottom: 12 }}>{t('chat_greeting')}</h2>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 24 }}>
-                  {[t('chat_suggest_cv'), t('chat_suggest_plan'), t('chat_suggest_grants')].map(s => (
-                    <Chip key={s} onClick={() => send(s)}>{s}</Chip>
+                <h2 style={{ fontFamily: C.font, fontSize: 24, fontWeight: 800, color: C.ink900, marginBottom: 8 }}>{t('chat_greeting')}</h2>
+                <p style={{ fontFamily: C.font, fontSize: 14, color: C.ink500, marginBottom: 32, maxWidth: 440, margin: '0 auto 32px' }}>
+                  Задай любой вопрос о выборе профессии, получении грантов в Казахстане и за рубежом или составлении крутого резюме.
+                </p>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: 12,
+                  maxWidth: 600,
+                  margin: '0 auto'
+                }}>
+                  {[
+                    { label: 'Помоги составить идеальное резюме', prompt: 'Помоги мне составить профессиональное резюме. Задай мне нужные вопросы по очереди, чтобы собрать информацию для CV.', icon: 'award' },
+                    { label: 'Как получить грант Болашак?', prompt: 'Расскажи подробно про международную стипендию Болашак: какие требования к IELTS, GPA и как проходит отбор?', icon: 'globe' },
+                    { label: 'Разработать карьерный план развития', prompt: 'Помоги мне составить пошаговый план развития в моей сфере. Какие технологии и навыки учить в первую очередь?', icon: 'compass' },
+                    { label: 'Как поступить в Назарбаев Университет?', prompt: 'Расскажи про требования для поступления в Назарбаев Университет (NU): какой нужен IELTS, SAT и какие есть гранты?', icon: 'home' },
+                    { label: 'IT-гранты в Казахстане', prompt: 'Какие вузы Казахстана дают лучшие внутренние гранты на IT-специальности? Расскажи про олимпиады и ЕНТ.', icon: 'target' },
+                    { label: 'Как подготовиться к IELTS?', prompt: 'Дай пошаговый план самостоятельной подготовки к экзамену IELTS на балл 7.0+ с нуля.', icon: 'book' }
+                  ].map((s, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => send(s.prompt)}
+                      style={{
+                        padding: '16px 20px', borderRadius: 16, background: '#FFFFFF',
+                        border: `1px solid ${C.hairline}`, textAlign: 'left', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 12, transition: 'all 200ms',
+                        boxShadow: '0 2px 8px rgba(10,18,48,0.02)'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = C.blue;
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(20,72,255,0.06)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = C.hairline;
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(10,18,48,0.02)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: C.blue50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name={s.icon} size={16} color={C.blue} />
+                      </div>
+                      <span style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900, lineHeight: 1.3 }}>
+                        {s.label}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </div>
