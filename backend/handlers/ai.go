@@ -551,6 +551,7 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			UpdatedAt: time.Now(),
 		})
 
+		c.JSON(http.StatusOK, result)
 	}
 }
 
