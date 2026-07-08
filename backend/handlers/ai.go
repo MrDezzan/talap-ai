@@ -38,7 +38,7 @@ func openaiClient() (*openai.Client, error) {
 func llmModel() string {
 	m := os.Getenv("LLM_MODEL")
 	if m == "" {
-		return "google/gemini-3.1-pro"
+		return "google/gemini-3.1-flash"
 	}
 	return m
 }

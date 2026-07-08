@@ -55,14 +55,19 @@ func parseMySQLURL(url string) string {
 
 func InitDB() *gorm.DB {
 	var dsn string
-	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = os.Getenv("MYSQL_URL")
+	}
+
+	if databaseURL != "" {
 		dsn = parseMySQLURL(databaseURL)
 	} else {
-		host   := getEnv("DB_HOST", "localhost")
-		port   := getEnv("DB_PORT", "3306")
-		user   := getEnv("DB_USER", "root")
-		pass   := getEnv("DB_PASS", "")
-		dbname := getEnv("DB_NAME", "talkd")
+		host   := getEnv("DB_HOST", getEnv("MYSQLHOST", "localhost"))
+		port   := getEnv("DB_PORT", getEnv("MYSQLPORT", "3306"))
+		user   := getEnv("DB_USER", getEnv("MYSQLUSER", "root"))
+		pass   := getEnv("DB_PASS", getEnv("MYSQLPASSWORD", ""))
+		dbname := getEnv("DB_NAME", getEnv("MYSQLDATABASE", "talkd"))
 
 		dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			user, pass, host, port, dbname)
