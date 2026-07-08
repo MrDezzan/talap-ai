@@ -27,7 +27,7 @@ export default function Roadmap() {
       <TopBar title={t('nav_roadmap')} />
 
       <div style={{ padding: isMobile ? '16px' : '40px', maxWidth: 800, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        {steps.length > 0 ? (
+        {steps.length > 3 ? (
           <>
             <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }} className="no-print">
               <div>
@@ -207,7 +207,7 @@ export default function Roadmap() {
               Построй подробный путь с Talap AI
             </h2>
             <p style={{ fontFamily: C.font, fontSize: 15, color: C.ink500, lineHeight: 1.6, marginBottom: 32 }}>
-              Наш ИИ-советник проведет с тобой короткое интервью в чате и составит детальный пошаговый план развития с указанием необходимых технологий, сроков и бесплатных ресурсов.
+              Для получения детального горизонтального роадмапа необходимо пройти короткую ИИ-консультацию. Наш AI-советник проведет с тобой интервью прямо в чате и составит крутой пошаговый план развития.
             </p>
             <Button
               variant="primary"
@@ -219,7 +219,7 @@ export default function Roadmap() {
               }}
               style={{ padding: '14px 28px' }}
             >
-              Создать роадмап в чате
+              Пройти ИИ-консультацию
             </Button>
           </div>
         )}
