@@ -7,7 +7,7 @@ export default function AuthLayout() {
   const { user } = useAuth();
   const isMobile = useMobile();
   
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user && user.grade) return <Navigate to="/dashboard" replace />;
 
   return (
     <div style={{

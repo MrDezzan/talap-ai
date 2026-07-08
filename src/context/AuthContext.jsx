@@ -24,6 +24,8 @@ export function AuthProvider({ children }) {
     }
   });
 
+  const [aiProfileLoaded, setAiProfileLoaded] = useState(false);
+
   const fetchMe = async () => {
     try {
       const data = await api.get('/me');
@@ -45,6 +47,8 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       console.error('Failed to fetch AI profile:', err);
+    } finally {
+      setAiProfileLoaded(true);
     }
   };
 
@@ -52,6 +56,8 @@ export function AuthProvider({ children }) {
     if (user) {
       fetchMe();
       fetchAIProfile();
+    } else {
+      setAiProfileLoaded(true);
     }
   }, []); // Only on initial mount if user exists
 
@@ -120,7 +126,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, analyzeProfile, updateUser, logout, loading, aiProfile, loginWithToken }}>
+    <AuthContext.Provider value={{ user, login, register, analyzeProfile, updateUser, logout, loading, aiProfile, aiProfileLoaded, loginWithToken }}>
       {children}
     </AuthContext.Provider>
   );
