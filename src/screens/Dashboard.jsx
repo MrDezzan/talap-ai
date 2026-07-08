@@ -357,39 +357,64 @@ export default function Dashboard() {
       </div>
       {showTour && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(10,18,48,0.5)',
-          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', zIndex: 10000, padding: 24
+          position: 'fixed', inset: 0,
+          background: 'rgba(10,18,48,0.65)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000, padding: isMobile ? 16 : 24
         }}>
           <div style={{
-            background: '#FFFFFF', borderRadius: 24, padding: isMobile ? 28 : 40,
-            maxWidth: 440, width: '100%', boxShadow: '0 24px 60px rgba(10,18,48,0.18)',
-            textAlign: 'center', position: 'relative', boxSizing: 'border-box'
+            background: '#FFFFFF', borderRadius: 28,
+            maxWidth: 520, width: '100%',
+            boxShadow: '0 32px 80px rgba(10,18,48,0.22)',
+            position: 'relative', overflow: 'hidden',
+            boxSizing: 'border-box',
           }}>
-            {/* Tour Slide Content */}
             {(() => {
+              const prof = aiProfile?.top_profession || 'специалиста';
               const slides = [
                 {
+                  bg: 'linear-gradient(135deg, #1448FF 0%, #3B6EFF 100%)',
+                  emoji: '🎉',
+                  title: `Твоя специальность — ${prof}!`,
+                  desc: 'Talap AI проанализировал твои ответы и подобрал оптимальный карьерный путь. Давай покажем, как работает платформа — это займёт минуту.',
+                  action: null,
+                  light: true,
+                },
+                {
+                  bg: '#F2F5FF',
                   icon: 'home',
-                  title: 'Твой дашборд 🏠',
-                  desc: 'Здесь отображается общая сводка по твоим интересам: совместимые специальности, лучшие подходящие гранты и оперативные уведомления от ИИ.'
+                  title: 'Дашборд',
+                  desc: 'Здесь — твоя личная сводка: топ-специальности по совместимости, подходящие гранты и быстрый доступ ко всем разделам платформы.',
+                  action: { label: 'Перейти на дашборд', path: '/dashboard' },
+                  light: false,
                 },
                 {
-                  icon: 'compass',
-                  title: 'Каталог профессий 🧭',
-                  desc: 'Изучай подробные карточки специальностей, требования к ним, уровень зарплаты в Казахстане и динамику роста востребованности.'
+                  bg: '#F2F5FF',
+                  icon: 'target',
+                  title: 'Карьерный маршрут',
+                  desc: 'Пошаговый план обучения по твоей специальности. Базовый роадмап уже готов — нажми «Получить детальный» и ИИ проведёт интервью и составит персональный план.',
+                  action: { label: 'Открыть мой маршрут', path: '/roadmap' },
+                  light: false,
                 },
                 {
-                  icon: 'award',
-                  title: 'База грантов и стипендий 🎯',
-                  desc: 'Выбирай гранты, подходящие под твои баллы ЕНТ, IELTS и GPA. Нажимай кнопку «Спросить Talap AI» для получения консультации по документам.'
-                },
-                {
+                  bg: '#F2F5FF',
                   icon: 'sparkles',
-                  title: 'Маршруты и ИИ-резюме ⚡',
-                  desc: 'Создавай подробный горизонтальный Roadmap обучения и генерируй профессиональное резюме по мировым стандартам прямо в чате!'
-                }
+                  title: 'Talap AI Чат',
+                  desc: 'Твой личный ИИ-советник. Спрашивай про гранты, просматривай специальности, составляй резюме или генерируй детальный роадмап — всё в одном диалоге.',
+                  action: { label: 'Открыть чат с ИИ', path: '/chat' },
+                  light: false,
+                },
+                {
+                  bg: '#F2F5FF',
+                  icon: 'award',
+                  title: 'База грантов',
+                  desc: 'Сотни грантов и стипендий — от Болашак до Google STEP. Фильтруй по баллам ЕНТ, IELTS или GPA и получай консультацию по документам прямо в чате.',
+                  action: { label: 'Смотреть гранты', path: '/grants' },
+                  light: false,
+                },
               ];
+
               const cur = slides[tourStep];
               const isLast = tourStep === slides.length - 1;
 
@@ -402,43 +427,116 @@ export default function Dashboard() {
                 }
               };
 
+              const goTo = (path) => {
+                localStorage.setItem('talap_tour_seen', 'true');
+                setShowTour(false);
+                navigate(path);
+              };
+
               return (
                 <>
+                  {/* Top gradient hero area */}
                   <div style={{
-                    width: 72, height: 72, borderRadius: 22, margin: '0 auto 24px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: C.blue50, boxShadow: '0 8px 20px rgba(20,72,255,0.06)'
+                    background: cur.bg,
+                    padding: isMobile ? '32px 28px 28px' : '40px 40px 32px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                    minHeight: 200, justifyContent: 'center', position: 'relative'
                   }}>
-                    <Icon name={cur.icon} size={32} color={C.blue} strokeWidth={2} />
-                  </div>
-                  <h3 style={{ fontFamily: C.font, fontSize: 22, fontWeight: 800, color: C.ink900, marginBottom: 12, letterSpacing: '-0.02em' }}>
-                    {cur.title}
-                  </h3>
-                  <p style={{ fontFamily: C.font, fontSize: 14, color: C.ink500, lineHeight: 1.6, marginBottom: 32, minHeight: 70 }}>
-                    {cur.desc}
-                  </p>
-                  
-                  {/* Dots Indicator */}
-                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
-                    {slides.map((_, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setTourStep(idx)}
-                        style={{
-                          width: idx === tourStep ? 20 : 6,
-                          height: 6,
-                          borderRadius: 3,
-                          background: idx === tourStep ? C.blue : C.blue100,
-                          cursor: 'pointer',
-                          transition: 'all 200ms'
-                        }}
-                      />
-                    ))}
+                    {/* Skip button */}
+                    <button
+                      onClick={() => { localStorage.setItem('talap_tour_seen', 'true'); setShowTour(false); }}
+                      style={{
+                        position: 'absolute', top: 16, right: 16,
+                        background: cur.light ? 'rgba(255,255,255,0.2)' : 'rgba(20,72,255,0.08)',
+                        border: 'none', borderRadius: 8, padding: '6px 12px',
+                        fontFamily: C.font, fontSize: 12, fontWeight: 600,
+                        color: cur.light ? 'rgba(255,255,255,0.8)' : C.ink500,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Пропустить
+                    </button>
+
+                    {cur.emoji ? (
+                      <div style={{ fontSize: 56, marginBottom: 16, lineHeight: 1 }}>{cur.emoji}</div>
+                    ) : (
+                      <div style={{
+                        width: 64, height: 64, borderRadius: 20, marginBottom: 16,
+                        background: 'rgba(20,72,255,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Icon name={cur.icon} size={32} color={C.blue} strokeWidth={1.5} />
+                      </div>
+                    )}
+
+                    <h2 style={{
+                      fontFamily: C.font, fontSize: isMobile ? 20 : 22, fontWeight: 800,
+                      color: cur.light ? '#FFFFFF' : C.ink900,
+                      margin: '0 0 10px', letterSpacing: '-0.02em', lineHeight: 1.2
+                    }}>
+                      {cur.title}
+                    </h2>
+                    <p style={{
+                      fontFamily: C.font, fontSize: 14, lineHeight: 1.6,
+                      color: cur.light ? 'rgba(255,255,255,0.82)' : C.ink500,
+                      margin: 0, maxWidth: 380
+                    }}>
+                      {cur.desc}
+                    </p>
                   </div>
 
-                  <Button variant="primary" size="lg" fullWidth onClick={next}>
-                    {isLast ? 'Поехали!' : 'Далее'}
-                  </Button>
+                  {/* Bottom action area */}
+                  <div style={{ padding: isMobile ? '24px 28px' : '28px 40px' }}>
+                    {/* Step dots */}
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 24 }}>
+                      {slides.map((_, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setTourStep(idx)}
+                          style={{
+                            width: idx === tourStep ? 24 : 6, height: 6,
+                            borderRadius: 3,
+                            background: idx === tourStep ? C.blue : C.blue100,
+                            cursor: 'pointer', transition: 'all 250ms'
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      {cur.action && (
+                        <button
+                          onClick={() => goTo(cur.action.path)}
+                          style={{
+                            flex: 1, padding: '13px 20px', borderRadius: 14,
+                            background: C.blue50, border: `1px solid ${C.blue100}`,
+                            fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.blue,
+                            cursor: 'pointer', transition: 'all 200ms'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.blue100}
+                          onMouseLeave={e => e.currentTarget.style.background = C.blue50}
+                        >
+                          {cur.action.label}
+                        </button>
+                      )}
+                      <button
+                        onClick={next}
+                        style={{
+                          flex: cur.action ? '0 0 auto' : 1,
+                          padding: '13px 24px', borderRadius: 14,
+                          background: C.blue, border: 'none',
+                          fontFamily: C.font, fontSize: 14, fontWeight: 800, color: '#FFFFFF',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 16px rgba(20,72,255,0.25)',
+                          transition: 'all 200ms'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                      >
+                        {isLast ? '🚀 Начать!' : 'Далее →'}
+                      </button>
+                    </div>
+                  </div>
                 </>
               );
             })()}

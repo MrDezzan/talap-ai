@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useMobile } from '../hooks/useMobile';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
@@ -21,6 +21,109 @@ export default function Roadmap() {
   const { t, lang } = useLanguage();
   const steps = aiProfile?.roadmap || [];
   const isMobile = useMobile();
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const downloadPDF = async () => {
+    if (pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const blue = [20, 72, 255];
+      const ink = [10, 18, 48];
+      const gray = [90, 100, 133];
+      const pageW = 210;
+      const margin = 18;
+      const contentW = pageW - margin * 2;
+
+      // --- Header ---
+      doc.setFillColor(20, 72, 255);
+      doc.rect(0, 0, pageW, 28, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TALAP AI', margin, 10);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('talapai.kz', margin, 16);
+      const dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+      doc.text(dateStr, pageW - margin, 16, { align: 'right' });
+
+      // --- Title ---
+      doc.setTextColor(...ink);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text(aiProfile?.top_profession || 'Карьерный маршрут', margin, 42);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...gray);
+      doc.text('Персональный карьерный маршрут', margin, 50);
+
+      // divider
+      doc.setDrawColor(...blue);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 54, pageW - margin, 54);
+
+      // --- Steps ---
+      let y = 62;
+      steps.forEach((step, i) => {
+        const cardH = 36;
+        if (y + cardH > 275) { doc.addPage(); y = 18; }
+
+        // Card background
+        doc.setFillColor(242, 245, 255);
+        doc.roundedRect(margin, y, contentW, cardH, 3, 3, 'F');
+
+        // Step circle
+        doc.setFillColor(...blue);
+        doc.circle(margin + 8, y + cardH / 2, 5, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text(String(i + 1), margin + 8, y + cardH / 2 + 2.5, { align: 'center' });
+
+        // Duration badge
+        if (step.duration) {
+          doc.setFillColor(255, 255, 255);
+          const badgeX = pageW - margin - 2;
+          doc.setTextColor(...blue);
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'bold');
+          doc.text(step.duration, badgeX, y + 8, { align: 'right' });
+        }
+
+        // Title
+        doc.setTextColor(...ink);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(step.title || '', margin + 18, y + 10);
+
+        // Description
+        doc.setTextColor(...gray);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const descLines = doc.splitTextToSize(step.description || '', contentW - 22);
+        doc.text(descLines.slice(0, 3), margin + 18, y + 17);
+
+        y += cardH + 5;
+      });
+
+      // --- Footer ---
+      doc.setFillColor(242, 245, 255);
+      doc.rect(0, 285, pageW, 12, 'F');
+      doc.setTextColor(...gray);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Сгенерировано Talap AI — talapai.kz', margin, 292);
+
+      doc.save(`Talap-AI-Roadmap-${(aiProfile?.top_profession || 'Career').replace(/\s/g, '-')}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Не удалось сгенерировать PDF. Попробуйте ещё раз.');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   return (
     <div style={{ flex: 1, overflow: 'auto', background: C.mist, display: 'flex', flexDirection: 'column' }}>
@@ -58,18 +161,21 @@ export default function Roadmap() {
                   {lang === 'ru' ? 'Поделиться' : 'Бөлісу'}
                 </button>
                 <button
-                  onClick={() => window.print()}
+                  onClick={downloadPDF}
+                  disabled={pdfLoading}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 12,
-                    background: C.blue, border: 'none', cursor: 'pointer',
+                    background: pdfLoading ? '#A0AFFF' : C.blue, border: 'none', cursor: pdfLoading ? 'wait' : 'pointer',
                     fontFamily: C.font, fontSize: 14, fontWeight: 700, color: '#FFFFFF',
                     transition: 'all 200ms', boxShadow: '0 4px 12px rgba(20,72,255,0.2)'
                   }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                  onMouseEnter={e => { if (!pdfLoading) e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
                 >
                   <Icon name="compass" size={16} color="#FFFFFF" />
-                  {lang === 'ru' ? 'Скачать PDF' : 'PDF жүктеу'}
+                  {pdfLoading
+                    ? (lang === 'ru' ? 'Генерация...' : 'Жасалуда...')
+                    : (lang === 'ru' ? 'Скачать PDF' : 'PDF жүктеу')}
                 </button>
               </div>
             </div>

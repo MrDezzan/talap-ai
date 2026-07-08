@@ -6,6 +6,7 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
+import { useChat } from '../context/ChatContext';
 import { useLanguage } from '../context/LanguageContext';
 
 const C = {
@@ -17,8 +18,14 @@ const C = {
 
 export default function Profile() {
   const { user, updateUser, logout } = useAuth();
+  const { clearChat } = useChat();
   const { lang, setLang, t } = useLanguage();
   const isMobile = useMobile();
+
+  const handleLogout = () => {
+    clearChat();
+    logout();
+  };
   const [formData, setFormData] = useState({
     name: user?.name || '',
     grade: user?.grade || '',
@@ -112,7 +119,7 @@ export default function Profile() {
             </Card>
 
             <Card style={{ border: '1px solid #FFEDED' }}>
-              <Button variant="ghost" fullWidth style={{ color: '#FF4D4D' }} icon="plus" onClick={logout}>
+              <Button variant="ghost" fullWidth style={{ color: '#FF4D4D' }} icon="plus" onClick={handleLogout}>
                 {t('settings_logout')}
               </Button>
             </Card>

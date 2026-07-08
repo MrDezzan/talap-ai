@@ -11,6 +11,15 @@ export function ChatProvider({ children }) {
   const [inputs, setInputs] = useState({}); // { threadId: string }
   const [loading, setLoading] = useState(false);
 
+  const clearChat = () => {
+    setThreads([]);
+    setActiveThreadId(null);
+    setMessages({});
+    setTyping({});
+    setInputs({});
+    setLoading(false);
+  };
+
   const fetchThreads = async () => {
     try {
       const data = await api.get('/chats');
@@ -57,7 +66,8 @@ export function ChatProvider({ children }) {
       fetchThreads, 
       fetchMessages,
       loading,
-      setLoading
+      setLoading,
+      clearChat
     }}>
       {children}
     </ChatContext.Provider>
