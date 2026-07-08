@@ -19,13 +19,18 @@ import (
 
 func openaiClient() (*openai.Client, error) {
 	key := os.Getenv("OPENAI_API_KEY")
+	if key == "" {
+		key = os.Getenv("OPENROUTER_API_KEY")
+	}
 	url := os.Getenv("LLM_BASE_URL")
 	if key == "" {
-		return nil, fmt.Errorf("AI_API_KEY not set")
+		return nil, fmt.Errorf("neither OPENAI_API_KEY nor OPENROUTER_API_KEY is set")
 	}
 	config := openai.DefaultConfig(key)
 	if url != "" {
 		config.BaseURL = url
+	} else {
+		config.BaseURL = "https://openrouter.ai/api/v1"
 	}
 	return openai.NewClientWithConfig(config), nil
 }
@@ -33,7 +38,7 @@ func openaiClient() (*openai.Client, error) {
 func llmModel() string {
 	m := os.Getenv("LLM_MODEL")
 	if m == "" {
-		return "anthropic/claude-sonnet-4.6"
+		return "google/gemini-2.5-pro"
 	}
 	return m
 }
