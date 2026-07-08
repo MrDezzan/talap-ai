@@ -153,12 +153,28 @@ export default function Roadmap() {
             </div>
           </>
         ) : (
-          <div style={{ textAlign: 'center', padding: '80px 0' }}>
-          <div style={{ width: 80, height: 80, borderRadius: 24, margin: '0 auto 32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.blue50 }}>
-              <Icon name="target" size={40} color={C.blue} strokeWidth={1.5} />
+          <div style={{ textAlign: 'center', padding: '60px 0', maxWidth: 480, margin: '0 auto' }}>
+            <div style={{ width: 80, height: 80, borderRadius: 24, margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.blue50 }}>
+              <Icon name="sparkles" size={40} color={C.blue} strokeWidth={1.5} />
             </div>
-            <h2 style={{ fontFamily: C.font, fontSize: 24, fontWeight: 800, color: C.ink900, marginBottom: 16 }}>{t('dash_roadmap_empty')}</h2>
-            <Button variant="primary" size="lg" onClick={() => navigate('/portfolio')}>{t('port_go_to')}</Button>
+            <h2 style={{ fontFamily: C.font, fontSize: 24, fontWeight: 800, color: C.ink900, marginBottom: 12 }}>
+              Построй подробный путь с Talap AI
+            </h2>
+            <p style={{ fontFamily: C.font, fontSize: 15, color: C.ink500, lineHeight: 1.6, marginBottom: 32 }}>
+              Наш ИИ-советник проведет с тобой короткое интервью в чате и составит детальный пошаговый план развития с указанием необходимых технологий, сроков и бесплатных ресурсов.
+            </p>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => {
+                const prof = aiProfile?.top_profession || 'своей будущей специальности';
+                localStorage.setItem('talap_chat_prefill', `Привет! Я хочу составить подробный карьерный роадмап по направлению "${prof}". Проведи со мной интервью: задавай вопросы по очереди о моих целях и текущих навыках, а затем сгенерируй крутой роадмап.`);
+                navigate('/chat');
+              }}
+              style={{ padding: '14px 28px' }}
+            >
+              Создать роадмап в чате
+            </Button>
           </div>
         )}
       </div>

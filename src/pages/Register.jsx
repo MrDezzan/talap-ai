@@ -198,6 +198,7 @@ export default function Register() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [analyzingName, setAnalyzingName] = useState('');
+  const [activeSlide, setActiveSlide] = useState(0);
   const submittingRef = useRef(false);
 
   useEffect(() => {
@@ -310,22 +311,6 @@ export default function Register() {
 
         setAnalyzingName(form.name.split(' ')[0]);
         setStep(2);
-
-        const [analysisResult] = await Promise.all([
-          analyzeProfile({
-            name: form.name,
-            grade: form.grade,
-            city: form.city,
-            interests: form.interests,
-          }),
-          new Promise(r => setTimeout(r, 7500)),
-        ]);
-
-        if (analysisResult?.error) {
-          console.warn('AI analysis failed:', analysisResult.error);
-        }
-
-        navigate('/dashboard');
       } catch (err) {
         if (err.status === 409) {
           setStep(0);
@@ -350,12 +335,91 @@ export default function Register() {
   };
 
   if (step === 2) {
+    const SLIDES = [
+      {
+        icon: 'sparkles',
+        title: `Привет, ${analyzingName}! 🚀`,
+        desc: 'Добро пожаловать в Talap AI — твой персональный навигатор в мире профессий, образования и грантов. Давай познакомимся с ключевыми возможностями платформы.',
+      },
+      {
+        icon: 'award',
+        title: 'Подбор грантов и стипендий 🎯',
+        desc: 'Мы собрали детальную базу из 30 лучших грантов в Казахстане и мире. Порог ЕНТ, баллы IELTS, список документов и требования к GPA — всё в одном месте.',
+      },
+      {
+        icon: 'compass',
+        title: 'Детальные Roadmap и CV в чате 🧭',
+        desc: 'ИИ-советник поможет составить профессиональное резюме по стандартам крупных компаний, а также пошаговый план развития из 5–8 шагов прямо в чате.',
+      },
+      {
+        icon: 'target',
+        title: 'Давай начнем с теста! ⚡',
+        desc: 'Чтобы платформа разблокировалась и подобрала контент лично под твои интересы, необходимо пройти тест профориентации из 7 вопросов. Без него платформа останется неактивной.',
+      }
+    ];
+
+    const currentSlide = SLIDES[activeSlide];
+    const isLast = activeSlide === SLIDES.length - 1;
+
+    const handleNext = () => {
+      if (isLast) {
+        navigate('/quiz');
+      } else {
+        setActiveSlide(activeSlide + 1);
+      }
+    };
+
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: C.mist, padding: '16px', boxSizing: 'border-box'
+        background: C.mist, padding: '16px', boxSizing: 'border-box', width: '100%'
       }}>
-        <AnalyzingScreen name={analyzingName} lang={lang} />
+        <div style={{
+          background: C.paper, borderRadius: 24, padding: isMobile ? 28 : 40,
+          border: `1px solid ${C.hairline}`, boxShadow: '0 8px 32px rgba(10,18,48,0.06)',
+          textAlign: 'center', maxWidth: 440, width: '100%', boxSizing: 'border-box'
+        }}>
+          {/* Slide Icon */}
+          <div style={{
+            width: 80, height: 80, borderRadius: 24, margin: '0 auto 28px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: C.blue50, boxShadow: '0 8px 24px rgba(20,72,255,0.06)',
+            position: 'relative'
+          }}>
+            <Icon name={currentSlide.icon} size={36} color={C.blue} strokeWidth={2} />
+          </div>
+
+          {/* Slide Content */}
+          <h2 style={{ fontFamily: C.font, fontSize: 24, fontWeight: 800, color: C.ink900, marginBottom: 12, letterSpacing: '-0.02em' }}>
+            {currentSlide.title}
+          </h2>
+          <p style={{ fontFamily: C.font, fontSize: 14, color: C.ink500, lineHeight: 1.6, marginBottom: 32, minHeight: 80 }}>
+            {currentSlide.desc}
+          </p>
+
+          {/* Dots Indicator */}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 32 }}>
+            {SLIDES.map((_, i) => (
+              <div
+                key={i}
+                onClick={() => setActiveSlide(i)}
+                style={{
+                  width: i === activeSlide ? 24 : 8,
+                  height: 8,
+                  borderRadius: 4,
+                  background: i === activeSlide ? C.blue : C.blue100,
+                  cursor: 'pointer',
+                  transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Next Button */}
+          <Button variant="primary" size="lg" fullWidth onClick={handleNext}>
+            {isLast ? 'Пройти тест профориентации' : 'Далее'}
+          </Button>
+        </div>
       </div>
     );
   }
