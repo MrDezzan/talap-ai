@@ -74,55 +74,7 @@ export default function Roadmap() {
               </div>
             </div>
 
-            {/* Premium Custom / Basic roadmap banner */}
-            <div className="no-print" style={{
-              background: steps.length <= 5 ? '#FFFFFF' : C.blue50,
-              border: `1px solid ${steps.length <= 5 ? C.hairline : C.blue100}`,
-              borderRadius: 16,
-              padding: '16px 24px',
-              marginBottom: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 16,
-              boxShadow: '0 4px 20px rgba(10,18,48,0.02)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280 }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 10,
-                  background: steps.length <= 5 ? C.blue50 : '#FFFFFF',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                }}>
-                  <Icon name="sparkles" size={20} color={C.blue} />
-                </div>
-                <div>
-                  <div style={{ fontFamily: C.font, fontSize: 15, fontWeight: 700, color: C.ink900, marginBottom: 2 }}>
-                    {steps.length <= 5 ? 'Доступен индивидуальный путь' : 'Индивидуальный путь построен'}
-                  </div>
-                  <div style={{ fontFamily: C.font, fontSize: 13, color: C.ink500, lineHeight: 1.4 }}>
-                    {steps.length <= 5 
-                      ? 'Вам показан базовый план. Запустите ИИ-интервью для генерации персональной пошаговой карты обучения.'
-                      : 'Ваш карьерный путь детально прописан искусственным интеллектом под ваши личные цели.'}
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant={steps.length <= 5 ? 'primary' : 'outline'}
-                size="md"
-                onClick={() => {
-                  const prof = aiProfile?.top_profession || 'своей будущей специальности';
-                  localStorage.setItem('talap_chat_prefill', `Привет! Я хочу составить подробный карьерный роадмап по направлению "${prof}". Проведи со мной интервью: задавай вопросы по очереди о моих целях и текущих навыках, а затем сгенерируй крутой роадмап.`);
-                  navigate('/chat');
-                }}
-                style={{
-                  boxShadow: steps.length <= 5 ? '0 4px 12px rgba(20,72,255,0.15)' : 'none',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {steps.length <= 5 ? 'Создать индивидуальный роадмап' : 'Обновить в чате'}
-              </Button>
-            </div>
+
 
             {/* Print Only Header */}
             <div className="print-only" style={{ display: 'none', marginBottom: 30, borderBottom: `2px solid ${C.blue}`, paddingBottom: 20 }}>
@@ -247,6 +199,73 @@ export default function Roadmap() {
                 </div>
               ))}
             </div>
+
+            {/* Large CTA card — get personalized roadmap */}
+            <div className="no-print" style={{
+              marginTop: 40,
+              background: 'linear-gradient(135deg, #1448FF 0%, #3B6EFF 100%)',
+              borderRadius: 24,
+              padding: isMobile ? '28px 20px' : '36px 40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 24,
+              boxShadow: '0 20px 60px rgba(20,72,255,0.25)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* decorative circles */}
+              <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', right: 60, bottom: -60, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+
+              <div style={{ flex: 1, minWidth: 260, position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="sparkles" size={18} color="#FFFFFF" />
+                  </div>
+                  <span style={{ fontFamily: C.font, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {steps.length <= 5 ? 'Базовый план' : 'Уже создан'} · Talap AI
+                  </span>
+                </div>
+                <h2 style={{ fontFamily: C.font, fontSize: isMobile ? 20 : 24, fontWeight: 800, color: '#FFFFFF', margin: '0 0 10px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  {steps.length <= 5 ? 'Получи детальный персональный роадмап' : 'Обнови свой роадмап под новые цели'}
+                </h2>
+                <p style={{ fontFamily: C.font, fontSize: 14, color: 'rgba(255,255,255,0.75)', margin: 0, lineHeight: 1.6, maxWidth: 480 }}>
+                  {steps.length <= 5
+                    ? 'Talap AI проведёт с тобой короткое интервью — спросит о твоих целях, навыках и сроках. После ответов сгенерирует детальный план с конкретными технологиями, ресурсами и дедлайнами.'
+                    : 'Расскажи Talap AI о новых целях, и он обновит твой карьерный путь с учётом текущего прогресса.'}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  const prof = aiProfile?.top_profession || 'этой специальности';
+                  const prompt = steps.length <= 5
+                    ? `Привет! Я хочу получить детальный персональный карьерный роадмап по специальности «${prof}». У меня уже есть базовый план, но мне нужен индивидуальный с учётом моих целей, текущего уровня и временных рамок. Пожалуйста, задавай мне вопросы по одному — я отвечу, а потом ты составишь подробный пошаговый роадмап с конкретными технологиями, курсами и дедлайнами.`
+                    : `Привет! Я хочу обновить свой карьерный роадмап по специальности «${prof}». Задай мне несколько вопросов о моём текущем прогрессе и новых целях, а затем сгенерируй обновлённый план.`;
+                  localStorage.setItem('talap_chat_prefill', prompt);
+                  navigate('/chat');
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '14px 24px', borderRadius: 14,
+                  background: '#FFFFFF', border: 'none', cursor: 'pointer',
+                  fontFamily: C.font, fontSize: 15, fontWeight: 800, color: '#1448FF',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  transition: 'all 200ms',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  position: 'relative'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'; }}
+              >
+                <Icon name="sparkles" size={18} color="#1448FF" />
+                {steps.length <= 5 ? 'Получить детальный роадмап' : 'Обновить роадмап'}
+                <Icon name="arrowRight" size={16} color="#1448FF" style={{ transform: 'rotate(-90deg)' }} />
+              </button>
+            </div>
           </>
         ) : (
           <div style={{ textAlign: 'center', padding: '60px 0', maxWidth: 480, margin: '0 auto' }}>
@@ -263,13 +282,14 @@ export default function Roadmap() {
               variant="primary"
               size="lg"
               onClick={() => {
-                const prof = aiProfile?.top_profession || 'своей будущей специальности';
-                localStorage.setItem('talap_chat_prefill', `Привет! Я хочу составить подробный карьерный роадмап по направлению "${prof}". Проведи со мной интервью: задавай вопросы по очереди о моих целях и текущих навыках, а затем сгенерируй крутой роадмап.`);
+                const prof = aiProfile?.top_profession || 'этой специальности';
+                const prompt = `Привет! Я хочу получить детальный персональный карьерный роадмап по специальности «${prof}». Пожалуйста, задавай мне вопросы по одному — я отвечу на каждый, а потом ты составишь подробный пошаговый план с конкретными технологиями, курсами и дедлайнами. Начинай!`;
+                localStorage.setItem('talap_chat_prefill', prompt);
                 navigate('/chat');
               }}
               style={{ padding: '14px 28px' }}
             >
-              Пройти ИИ-консультацию
+              Начать консультацию с Talap AI
             </Button>
           </div>
         )}
