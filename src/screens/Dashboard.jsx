@@ -459,6 +459,7 @@ export default function Dashboard() {
             pointerEvents: 'auto',
             transform: spotlightRect ? 'translateY(-20px)' : 'none',
             transition: 'transform 300ms ease',
+            zIndex: 10005, // Render above spotlight shadow!
           }}>
             {(() => {
               const prof = aiProfile?.top_profession || 'специалиста';
