@@ -631,7 +631,7 @@ function Footer() {
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ borderTop: '1px solid #2A3457', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: 16 }}>
           <div style={{ fontFamily: C.font, fontSize: 13, color: '#5A6485' }}>© 2026 Talap.ai. {lang === 'en' ? 'All rights reserved.' : lang === 'kz' ? 'Барлық құқықтар қорғалған.' : 'Все права защищены.'}</div>
-          <div style={{ fontFamily: C.font, fontSize: 13, color: '#5A6485' }}>{lang === 'en' ? 'Astana, Kazakhstan' : 'Астана, Казахстан'} 🇰🇿</div>
+          <div style={{ fontFamily: C.font, fontSize: 13, color: '#5A6485' }}>Сделано для AITK · Далихан, Алихан</div>
         </div>
       </div>
     </footer>
