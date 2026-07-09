@@ -200,11 +200,17 @@ export default function Grants() {
 
   if (loading) return null;
 
-  const filtered = grants.filter(g => {
-    const matchFilter = activeFilter === 'all' || (g.tags && g.tags.includes(activeFilter));
-    const matchSearch = !search || g.name.toLowerCase().includes(search.toLowerCase()) || (g.subtitle && g.subtitle.toLowerCase().includes(search.toLowerCase()));
-    return matchFilter && matchSearch;
-  });
+  const filtered = grants
+    .filter(g => {
+      const matchFilter = activeFilter === 'all' || (g.tags && g.tags.includes(activeFilter));
+      const matchSearch = !search || g.name.toLowerCase().includes(search.toLowerCase()) || (g.subtitle && g.subtitle.toLowerCase().includes(search.toLowerCase()));
+      return matchFilter && matchSearch;
+    })
+    .sort((a, b) => {
+      const scoreA = calculateRealMatch(a, portfolio, false) || 0;
+      const scoreB = calculateRealMatch(b, portfolio, false) || 0;
+      return scoreB - scoreA;
+    });
 
   return (
     <div style={{ flex: 1, overflow: 'auto', background: C.mist, display: 'flex', flexDirection: 'column' }}>

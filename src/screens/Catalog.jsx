@@ -128,11 +128,17 @@ export default function Catalog() {
 
   if (loading) return null;
 
-  const filtered = professions.filter(p => {
-    const matchCat = activeCategory === 'all' || p.category === activeCategory;
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const filtered = professions
+    .filter(p => {
+      const matchCat = activeCategory === 'all' || p.category === activeCategory;
+      const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase());
+      return matchCat && matchSearch;
+    })
+    .sort((a, b) => {
+      const scoreA = calculateRealMatch(a, portfolio, true) || 0;
+      const scoreB = calculateRealMatch(b, portfolio, true) || 0;
+      return scoreB - scoreA;
+    });
 
   return (
     <div style={{ flex: 1, overflow: 'auto', background: C.mist, display: 'flex', flexDirection: 'column' }}>
