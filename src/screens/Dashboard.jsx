@@ -34,6 +34,51 @@ export default function Dashboard() {
 
   const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+  const [spotlightRect, setSpotlightRect] = useState(null);
+
+  const updateSpotlight = (stepIndex) => {
+    const selectors = [
+      null, // Step 0: Welcome centered
+      '[data-tour="hero-mesh"]',
+      '[data-tour="stats-grid"]',
+      'aside, nav[style*="bottom"]' // Desktop aside or Mobile bottom nav bar
+    ];
+    const selector = selectors[stepIndex];
+    if (!selector) {
+      setSpotlightRect(null);
+      return;
+    }
+    const el = document.querySelector(selector);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setSpotlightRect({
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        height: rect.height
+      });
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      setSpotlightRect(null);
+    }
+  };
+
+  useEffect(() => {
+    if (showTour) {
+      // Small timeout to let the DOM settle before measuring
+      const t = setTimeout(() => updateSpotlight(tourStep), 150);
+      const handleResize = () => updateSpotlight(tourStep);
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('scroll', handleResize, true);
+      return () => {
+        clearTimeout(t);
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('scroll', handleResize, true);
+      };
+    } else {
+      setSpotlightRect(null);
+    }
+  }, [showTour, tourStep]);
 
   useEffect(() => {
     const tourSeen = localStorage.getItem('talap_tour_seen');
@@ -142,7 +187,7 @@ export default function Dashboard() {
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-          <Mesh intensity={0.85} style={{ borderRadius: 16, padding: isMobile ? 20 : 28, minHeight: 200 }}>
+          <Mesh data-tour="hero-mesh" intensity={0.85} style={{ borderRadius: 16, padding: isMobile ? 20 : 28, minHeight: 200 }}>
             <Chip dot tone="ai" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(10px)' }}>
               {t('grants_ai_tip')}
             </Chip>
@@ -180,7 +225,7 @@ export default function Dashboard() {
             </div>
           </Mesh>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+          <div data-tour="stats-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
             {stats.map((s, i) => (
               <Card key={i}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -358,17 +403,38 @@ export default function Dashboard() {
       {showTour && (
         <div style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(10,18,48,0.65)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10000, padding: isMobile ? 16 : 24
+          background: spotlightRect ? 'transparent' : 'rgba(10,18,48,0.5)',
+          backdropFilter: spotlightRect ? 'none' : 'blur(4px)',
+          display: 'flex', alignItems: spotlightRect ? 'flex-end' : 'center',
+          justifyContent: 'center', zIndex: 10000, padding: isMobile ? 16 : 40,
+          pointerEvents: spotlightRect ? 'none' : 'auto'
         }}>
+          {/* Spotlight Highlight Panel */}
+          {spotlightRect && (
+            <div style={{
+              position: 'absolute',
+              top: spotlightRect.top - 6,
+              left: spotlightRect.left - 6,
+              width: spotlightRect.width + 12,
+              height: spotlightRect.height + 12,
+              borderRadius: 16,
+              border: '3px solid #1448FF',
+              boxShadow: '0 0 0 9999px rgba(10, 18, 48, 0.75), 0 0 20px rgba(20,72,255,0.4)',
+              zIndex: 9999,
+              pointerEvents: 'none',
+              transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+            }} />
+          )}
+
           <div style={{
-            background: '#FFFFFF', borderRadius: 28,
-            maxWidth: 520, width: '100%',
-            boxShadow: '0 32px 80px rgba(10,18,48,0.22)',
+            background: '#FFFFFF', borderRadius: 24,
+            maxWidth: 440, width: '100%',
+            boxShadow: '0 20px 50px rgba(10,18,48,0.25), 0 0 0 1px rgba(10,18,48,0.08)',
             position: 'relative', overflow: 'hidden',
             boxSizing: 'border-box',
+            pointerEvents: 'auto',
+            transform: spotlightRect ? 'translateY(-20px)' : 'none',
+            transition: 'transform 300ms ease',
           }}>
             {(() => {
               const prof = aiProfile?.top_profession || 'специалиста';
@@ -384,33 +450,25 @@ export default function Dashboard() {
                 {
                   bg: '#F2F5FF',
                   icon: 'home',
-                  title: 'Дашборд',
-                  desc: 'Здесь — твоя личная сводка: топ-специальности по совместимости, подходящие гранты и быстрый доступ ко всем разделам платформы.',
-                  action: { label: 'Перейти на дашборд', path: '/dashboard' },
+                  title: 'Твоя топ-рекомендация 🌟',
+                  desc: 'Здесь показана твоя лучшая совместимая специальность и наиболее подходящий грант. Ты можешь сразу перейти к списку грантов или задать вопрос ИИ.',
+                  action: { label: 'Смотреть гранты', path: '/grants' },
                   light: false,
                 },
                 {
                   bg: '#F2F5FF',
                   icon: 'target',
-                  title: 'Карьерный маршрут',
-                  desc: 'Пошаговый план обучения по твоей специальности. Базовый роадмап уже готов — нажми «Получить детальный» и ИИ проведёт интервью и составит персональный план.',
-                  action: { label: 'Открыть мой маршрут', path: '/roadmap' },
+                  title: 'Панель показателей 📊',
+                  desc: 'Твои основные метрики: количество подобранных специальностей, доступные под твои баллы гранты и шаги в дорожной карте обучения.',
+                  action: { label: 'Мой маршрут', path: '/roadmap' },
                   light: false,
                 },
                 {
                   bg: '#F2F5FF',
-                  icon: 'sparkles',
-                  title: 'Talap AI Чат',
-                  desc: 'Твой личный ИИ-советник. Спрашивай про гранты, просматривай специальности, составляй резюме или генерируй детальный роадмап — всё в одном диалоге.',
+                  icon: 'compass',
+                  title: 'Навигационная панель 🧭',
+                  desc: 'Используй меню, чтобы переключаться между каталогом специальностей, базой грантов, дорожной картой обучения, портфолио олимпиад и умным ИИ-чатом.',
                   action: { label: 'Открыть чат с ИИ', path: '/chat' },
-                  light: false,
-                },
-                {
-                  bg: '#F2F5FF',
-                  icon: 'award',
-                  title: 'База грантов',
-                  desc: 'Сотни грантов и стипендий — от Болашак до Google STEP. Фильтруй по баллам ЕНТ, IELTS или GPA и получай консультацию по документам прямо в чате.',
-                  action: { label: 'Смотреть гранты', path: '/grants' },
                   light: false,
                 },
               ];
@@ -438,9 +496,9 @@ export default function Dashboard() {
                   {/* Top gradient hero area */}
                   <div style={{
                     background: cur.bg,
-                    padding: isMobile ? '32px 28px 28px' : '40px 40px 32px',
+                    padding: isMobile ? '28px 24px 24px' : '36px 36px 28px',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-                    minHeight: 200, justifyContent: 'center', position: 'relative'
+                    minHeight: 180, justifyContent: 'center', position: 'relative'
                   }}>
                     {/* Skip button */}
                     <button
@@ -458,43 +516,43 @@ export default function Dashboard() {
                     </button>
 
                     {cur.emoji ? (
-                      <div style={{ fontSize: 56, marginBottom: 16, lineHeight: 1 }}>{cur.emoji}</div>
+                      <div style={{ fontSize: 48, marginBottom: 12, lineHeight: 1 }}>{cur.emoji}</div>
                     ) : (
                       <div style={{
-                        width: 64, height: 64, borderRadius: 20, marginBottom: 16,
+                        width: 54, height: 54, borderRadius: 16, marginBottom: 12,
                         background: 'rgba(20,72,255,0.1)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}>
-                        <Icon name={cur.icon} size={32} color={C.blue} strokeWidth={1.5} />
+                        <Icon name={cur.icon} size={28} color={C.blue} strokeWidth={1.5} />
                       </div>
                     )}
 
                     <h2 style={{
-                      fontFamily: C.font, fontSize: isMobile ? 20 : 22, fontWeight: 800,
+                      fontFamily: C.font, fontSize: isMobile ? 18 : 20, fontWeight: 800,
                       color: cur.light ? '#FFFFFF' : C.ink900,
-                      margin: '0 0 10px', letterSpacing: '-0.02em', lineHeight: 1.2
+                      margin: '0 0 8px', letterSpacing: '-0.02em', lineHeight: 1.2
                     }}>
                       {cur.title}
                     </h2>
                     <p style={{
-                      fontFamily: C.font, fontSize: 14, lineHeight: 1.6,
+                      fontFamily: C.font, fontSize: 13, lineHeight: 1.5,
                       color: cur.light ? 'rgba(255,255,255,0.82)' : C.ink500,
-                      margin: 0, maxWidth: 380
+                      margin: 0, maxWidth: 360
                     }}>
                       {cur.desc}
                     </p>
                   </div>
 
                   {/* Bottom action area */}
-                  <div style={{ padding: isMobile ? '24px 28px' : '28px 40px' }}>
+                  <div style={{ padding: isMobile ? '20px 24px' : '24px 36px' }}>
                     {/* Step dots */}
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 24 }}>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
                       {slides.map((_, idx) => (
                         <div
                           key={idx}
                           onClick={() => setTourStep(idx)}
                           style={{
-                            width: idx === tourStep ? 24 : 6, height: 6,
+                            width: idx === tourStep ? 20 : 6, height: 6,
                             borderRadius: 3,
                             background: idx === tourStep ? C.blue : C.blue100,
                             cursor: 'pointer', transition: 'all 250ms'
@@ -508,9 +566,9 @@ export default function Dashboard() {
                         <button
                           onClick={() => goTo(cur.action.path)}
                           style={{
-                            flex: 1, padding: '13px 20px', borderRadius: 14,
+                            flex: 1, padding: '11px 18px', borderRadius: 12,
                             background: C.blue50, border: `1px solid ${C.blue100}`,
-                            fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.blue,
+                            fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.blue,
                             cursor: 'pointer', transition: 'all 200ms'
                           }}
                           onMouseEnter={e => e.currentTarget.style.background = C.blue100}
@@ -523,14 +581,14 @@ export default function Dashboard() {
                         onClick={next}
                         style={{
                           flex: cur.action ? '0 0 auto' : 1,
-                          padding: '13px 24px', borderRadius: 14,
+                          padding: '11px 20px', borderRadius: 12,
                           background: C.blue, border: 'none',
-                          fontFamily: C.font, fontSize: 14, fontWeight: 800, color: '#FFFFFF',
+                          fontFamily: C.font, fontSize: 13, fontWeight: 800, color: '#FFFFFF',
                           cursor: 'pointer',
                           boxShadow: '0 4px 16px rgba(20,72,255,0.25)',
                           transition: 'all 200ms'
                         }}
-                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                       >
                         {isLast ? '🚀 Начать!' : 'Далее →'}
