@@ -23,6 +23,9 @@ export default function Sidebar() {
     { to: '/portfolio',   label: t('nav_portfolio'),     icon: 'trophy' },
     { to: '/chat',        label: t('nav_chat'),          icon: 'sparkles' },
   ];
+  if (user?.role === 'admin') {
+    navItems.push({ to: '/admin', label: 'Админ-панель', icon: 'settings' });
+  }
 
   if (isMobile) {
     const mobileNavItems = [
@@ -134,29 +137,35 @@ export default function Sidebar() {
 
               {/* Navigation lists */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  { to: '/roadmap', label: t('nav_roadmap'), icon: 'target' },
-                  { to: '/portfolio', label: t('nav_portfolio'), icon: 'trophy' },
-                  { to: '/settings', label: t('nav_settings'), icon: 'settings' },
-                ].map(item => (
-                  <button
-                    key={item.to}
-                    onClick={() => {
-                      setShowMenu(false);
-                      navigate(item.to);
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 16px', borderRadius: 12,
-                      background: '#F5F7FB', border: 'none', cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600,
-                      color: '#2A3457', textAlign: 'left', width: '100%'
-                    }}
-                  >
-                    <Icon name={item.icon} size={18} color="#1448FF" />
-                    {item.label}
-                  </button>
-                ))}
+                {(() => {
+                  const mobileSheetItems = [
+                    { to: '/roadmap', label: t('nav_roadmap'), icon: 'target' },
+                    { to: '/portfolio', label: t('nav_portfolio'), icon: 'trophy' },
+                    { to: '/settings', label: t('nav_settings'), icon: 'settings' },
+                  ];
+                  if (user?.role === 'admin') {
+                    mobileSheetItems.push({ to: '/admin', label: 'Админ-панель', icon: 'settings' });
+                  }
+                  return mobileSheetItems.map(item => (
+                    <button
+                      key={item.to}
+                      onClick={() => {
+                        setShowMenu(false);
+                        navigate(item.to);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '12px 16px', borderRadius: 12,
+                        background: '#F5F7FB', border: 'none', cursor: 'pointer',
+                        fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600,
+                        color: '#2A3457', textAlign: 'left', width: '100%'
+                      }}
+                    >
+                      <Icon name={item.icon} size={18} color="#1448FF" />
+                      {item.label}
+                    </button>
+                  ));
+                })()}
               </div>
 
               {/* Language Selection */}
@@ -217,7 +226,7 @@ export default function Sidebar() {
 
   return (
     <aside style={{
-      width: 240,
+      width: 260, // slightly wider for desktop
       height: '100%',
       background: '#FFFFFF',
       borderRight: '1px solid #E4E8F1',
@@ -240,15 +249,15 @@ export default function Sidebar() {
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '10px 12px',
+              gap: 14,
+              padding: '11px 16px',
               background: isActive ? '#F2F5FF' : 'transparent',
               border: 'none',
               borderRadius: 8,
               cursor: 'pointer',
               textAlign: 'left',
               fontFamily: 'var(--font-sans)',
-              fontSize: 14,
+              fontSize: 15, // slightly larger font
               fontWeight: isActive ? 600 : 500,
               color: isActive ? '#1448FF' : '#2A3457',
               textDecoration: 'none',

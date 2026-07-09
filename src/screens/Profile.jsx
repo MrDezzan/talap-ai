@@ -57,7 +57,7 @@ export default function Profile() {
     <div style={{ flex: 1, overflow: 'auto', background: C.mist, display: 'flex', flexDirection: 'column' }}>
       <TopBar title={t('settings_title')} />
 
-      <div style={{ padding: isMobile ? 16 : 32, maxWidth: 800, boxSizing: 'border-box' }}>
+      <div style={{ padding: isMobile ? 16 : 40, maxWidth: 960, boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', gap: 32 }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
             <Card>

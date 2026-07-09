@@ -21,6 +21,7 @@ import Grants from './screens/Grants';
 import Portfolio from './screens/Portfolio';
 import Profile from './screens/Profile';
 import Quiz from './screens/Quiz';
+import AdminDashboard from './screens/AdminDashboard';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -54,6 +55,7 @@ export default function App() {
               <Route path="/chat" element={<Chat />} />
               <Route path="/quiz" element={<Quiz />} />
               <Route path="/settings" element={<Profile />} />
+              <Route path="/admin" element={<AdminDashboard />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

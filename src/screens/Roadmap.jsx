@@ -143,7 +143,7 @@ export default function Roadmap() {
     <div style={{ flex: 1, overflow: 'auto', background: C.mist, display: 'flex', flexDirection: 'column' }}>
       <TopBar title={t('nav_roadmap')} />
 
-      <div style={{ padding: isMobile ? '16px' : '40px', maxWidth: 800, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ padding: isMobile ? '16px' : '40px', maxWidth: 1060, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {steps.length > 0 ? (
           <>
             <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }} className="no-print">

@@ -71,6 +71,7 @@ func main() {
 			auth.PUT("/portfolio/roadmap", handlers.UpdatePortfolioRoadmap(db))
 			auth.GET("/chats", handlers.GetChatThreads(db))
 			auth.GET("/chats/:id/messages", handlers.GetChatMessages(db))
+			auth.GET("/admin/stats", handlers.GetAdminStats(db))
 		}
 	}
 

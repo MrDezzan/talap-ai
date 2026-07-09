@@ -298,7 +298,7 @@ export default function Portfolio() {
         />
       </div>
 
-      <div className="grid-layout" style={{ padding: isMobile ? 16 : 32, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: 24, maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div className="grid-layout" style={{ padding: isMobile ? 16 : 32, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: 24, maxWidth: 1360, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         <div>
 
           <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>

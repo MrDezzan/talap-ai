@@ -13,6 +13,7 @@ type User struct {
 	Grade        string    `json:"grade"`
 	City         string    `json:"city"`
 	School       string    `json:"school"`
+	Role         string    `gorm:"default:'student'" json:"role"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 

@@ -183,7 +183,7 @@ export default function Dashboard() {
       />
 
       <div style={{ 
-        padding: isMobile ? 16 : 32, 
+        padding: isMobile ? 16 : 40, 
         display: 'grid', 
         gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', 
         gap: 24, 

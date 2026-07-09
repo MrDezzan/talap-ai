@@ -4,10 +4,32 @@ import (
 	"talkd-backend/models"
 	"gorm.io/gorm"
 	"log"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func SeedDB(db *gorm.DB) {
 	log.Println("Seeding database with fresh mock data...")
+
+	// Seed Admin User
+	var adminCount int64
+	db.Model(&models.User{}).Where("email = ?", "alikhanchick765@gmail.com").Count(&adminCount)
+	if adminCount == 0 {
+		hashed, _ := bcrypt.GenerateFromPassword([]byte("Loserlolo123&"), bcrypt.DefaultCost)
+		admin := models.User{
+			Name:         "Алихан Сейткалиев (Admin)",
+			Email:        "alikhanchick765@gmail.com",
+			PasswordHash: string(hashed),
+			Role:         "admin",
+			Grade:        "11",
+			City:         "Астана",
+			School:       "AITU School",
+		}
+		if err := db.Create(&admin).Error; err != nil {
+			log.Printf("Failed to seed admin user: %v", err)
+		} else {
+			log.Println("✅ Successfully seeded admin user: alikhanchick765@gmail.com")
+		}
+	}
 
 	// Clear existing to ensure sync with frontend filters
 	db.Exec("DELETE FROM professions")
