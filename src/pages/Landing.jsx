@@ -114,6 +114,7 @@ function Hero() {
   const wordList = words[lang] || words['ru'];
   const [wordIndex, setWordIndex] = useState(0);
   const [fade, setFade] = useState(true);
+  const [activeTab, setActiveTab] = useState('student'); // 'student' or 'investor'
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -209,49 +210,163 @@ function Hero() {
               background: 'radial-gradient(60% 60% at 50% 50%, rgba(20,72,255,0.08), transparent)',
             }} />
             <div style={{
-              borderRadius: 20, padding: isMobile ? 20 : 24,
+              borderRadius: 20, padding: isMobile ? 18 : 24,
               background: 'white',
               boxShadow: '0 32px 80px rgba(10,18,48,0.14), 0 0 0 1px rgba(10,18,48,0.06)',
               position: 'relative',
+              overflow: 'hidden'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 9999, background: 'white', boxShadow: '0 0 0 3px rgba(20,72,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="sparkles" size={16} color={C.blue} strokeWidth={2} />
-                </div>
-                <div>
-                  <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900 }}>Talap</div>
-                  <div style={{ fontFamily: C.font, fontSize: 11, color: C.success700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#6FCF97' }} />
-                    {lang === 'en' ? 'Online' : lang === 'kz' ? 'Желіде' : 'На связи'}
-                  </div>
-                </div>
+              {/* Tab Switcher */}
+              <div style={{ display: 'flex', borderBottom: `1px solid ${C.hairline}`, marginBottom: 20, gap: 16 }}>
+                <button
+                  onClick={() => setActiveTab('student')}
+                  style={{
+                    padding: '8px 0', border: 'none', background: 'none',
+                    fontFamily: C.font, fontSize: 13, fontWeight: 700,
+                    color: activeTab === 'student' ? C.blue : C.ink500,
+                    borderBottom: `2px solid ${activeTab === 'student' ? C.blue : 'transparent'}`,
+                    cursor: 'pointer', transition: 'all 200ms',
+                    outline: 'none'
+                  }}
+                >
+                  {lang === 'en' ? 'Student Demo' : lang === 'kz' ? 'Демо-нұсқа' : 'Для учеников'}
+                </button>
+                <button
+                  onClick={() => setActiveTab('investor')}
+                  style={{
+                    padding: '8px 0', border: 'none', background: 'none',
+                    fontFamily: C.font, fontSize: 13, fontWeight: 700,
+                    color: activeTab === 'investor' ? C.blue : C.ink500,
+                    borderBottom: `2px solid ${activeTab === 'investor' ? C.blue : 'transparent'}`,
+                    cursor: 'pointer', transition: 'all 200ms',
+                    outline: 'none',
+                    display: 'flex', alignItems: 'center', gap: 6
+                  }}
+                >
+                  {lang === 'en' ? 'For Investors 📈' : lang === 'kz' ? 'Инвесторларға 📈' : 'Инвесторам 📈'}
+                  <span style={{
+                    padding: '2px 6px', background: C.blue50, color: C.blue,
+                    borderRadius: 6, fontSize: 10, fontWeight: 800
+                  }}>
+                    Pitch
+                  </span>
+                </button>
               </div>
-              <div style={{ background: 'rgba(255,255,255,0.9)', borderRadius: 12, padding: 14, marginBottom: 10 }}>
-                <div style={{ fontFamily: C.font, fontSize: 14, color: C.ink900, lineHeight: 1.5 }}>
-                  {lang === 'en' ? 'Based on your results (UNT 132, profile: math) I picked 3 directions:' : 
-                   lang === 'kz' ? 'Сенің нәтижелерің негізінде (ҰБТ 132, профиль: математика) 3 бағыт таңдадым:' :
-                   'На основе твоих результатов (ЕНТ 132, профиль: математика) подобрал 3 направления:'}
-                </div>
-                {[
-                  { name: 'Data-аналитик', m: 92 },
-                  { name: 'AI Engineer', m: 87 },
-                  { name: 'Product-менеджер', m: 74 },
-                ].map(p => (
-                  <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12, marginTop: 10 }}>
-                    <span style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.ink900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: isMobile ? 60 : 80, height: 4, background: C.mist2, borderRadius: 9999, overflow: 'hidden' }}>
-                        <div style={{ width: `${p.m}%`, height: '100%', background: C.blue, borderRadius: 9999 }} />
+
+              {activeTab === 'student' ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9999, background: 'white', boxShadow: '0 0 0 3px rgba(20,72,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="sparkles" size={16} color={C.blue} strokeWidth={2} />
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900 }}>Talap</div>
+                      <div style={{ fontFamily: C.font, fontSize: 11, color: C.success700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#6FCF97' }} />
+                        {lang === 'en' ? 'Online' : lang === 'kz' ? 'Желіде' : 'На связи'}
                       </div>
-                      <span style={{ fontFamily: '"Geist Mono",monospace', fontSize: 11, fontWeight: 600, color: C.blue, width: 32 }}>{p.m}%</span>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <Chip onClick={() => navigate('/grants')}>{t('nav_grants')}</Chip>
-                <Chip onClick={() => navigate('/roadmap')}>{t('cat_modal_build_path')}</Chip>
-              </div>
+                  <div style={{ background: 'rgba(255,255,255,0.9)', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                    <div style={{ fontFamily: C.font, fontSize: 14, color: C.ink900, lineHeight: 1.5 }}>
+                      {lang === 'en' ? 'Based on your results (UNT 132, profile: math) I picked 3 directions:' : 
+                       lang === 'kz' ? 'Сенің нәтижелерің негізінде (ҰБТ 132, профиль: математика) 3 бағыт таңдадым:' :
+                       'На основе твоих результатов (ЕНТ 132, профиль: математика) подобрал 3 направления:'}
+                    </div>
+                    {[
+                      { name: 'Data-аналитик', m: 92 },
+                      { name: 'AI Engineer', m: 87 },
+                      { name: 'Product-менеджер', m: 74 },
+                    ].map(p => (
+                      <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12, marginTop: 10 }}>
+                        <span style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.ink900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: isMobile ? 60 : 80, height: 4, background: C.mist2, borderRadius: 9999, overflow: 'hidden' }}>
+                            <div style={{ width: `${p.m}%`, height: '100%', background: C.blue, borderRadius: 9999 }} />
+                          </div>
+                          <span style={{ fontFamily: '"Geist Mono",monospace', fontSize: 11, fontWeight: 600, color: C.blue, width: 32 }}>{p.m}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <Chip onClick={() => navigate('/grants')}>{t('nav_grants')}</Chip>
+                    <Chip onClick={() => navigate('/roadmap')}>{t('cat_modal_build_path')}</Chip>
+                  </div>
+                </>
+              ) : (
+                <div style={{ animation: 'fadeIn 200ms ease-out' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <div>
+                      <div style={{ fontFamily: C.font, fontSize: 11, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Traction & Investment TAM
+                      </div>
+                      <h4 style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, color: C.ink900, margin: '4px 0 0' }}>
+                        Talap.ai Growth Unit
+                      </h4>
+                    </div>
+                    <div style={{ padding: '4px 8px', borderRadius: 6, background: '#ECFAF3', color: '#047857', fontFamily: '"Geist Mono",monospace', fontSize: 11, fontWeight: 700 }}>
+                      +42% MoM
+                    </div>
+                  </div>
+
+                  {/* Financial/Traction KPIs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 18 }}>
+                    <div style={{ background: C.blue50, padding: 12, borderRadius: 12, border: `1px solid ${C.blue100}` }}>
+                      <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>Active Students</div>
+                      <div style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, color: C.blue, marginTop: 4 }}>50k+</div>
+                    </div>
+                    <div style={{ background: C.mist, padding: 12, borderRadius: 12, border: `1px solid ${C.hairline}` }}>
+                      <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>Market size (TAM)</div>
+                      <div style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, color: C.ink900, marginTop: 4 }}>$2.4B</div>
+                    </div>
+                    <div style={{ background: C.mist, padding: 12, borderRadius: 12, border: `1px solid ${C.hairline}` }}>
+                      <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>B2B Partners</div>
+                      <div style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, color: C.ink900, marginTop: 4 }}>12 Univ.</div>
+                    </div>
+                    <div style={{ background: C.mist, padding: 12, borderRadius: 12, border: `1px solid ${C.hairline}` }}>
+                      <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>Retention rate</div>
+                      <div style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, color: C.ink900, marginTop: 4 }}>68%</div>
+                    </div>
+                  </div>
+
+                  {/* Chart Graphic representation */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: C.font, fontSize: 11, color: C.ink500, marginBottom: 6 }}>
+                      <span>User Growth Projection</span>
+                      <span>150k target</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', height: 48, gap: 6, background: C.mist, borderRadius: 8, padding: 8 }}>
+                      <div style={{ flex: 1, height: '25%', background: C.blue100, borderRadius: 3 }} />
+                      <div style={{ flex: 1, height: '40%', background: C.blue100, borderRadius: 3 }} />
+                      <div style={{ flex: 1, height: '55%', background: C.blue100, borderRadius: 3 }} />
+                      <div style={{ flex: 1, height: '70%', background: C.blue, borderRadius: 3 }} />
+                      <div style={{ flex: 1, height: '85%', background: C.blue, borderRadius: 3, position: 'relative' }}>
+                        <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontFamily: '"Geist Mono",monospace', fontSize: 8, fontWeight: 700, color: C.blue }}>Now</span>
+                      </div>
+                      <div style={{ flex: 1, height: '100%', background: C.blue, borderRadius: 3, opacity: 0.5 }} />
+                    </div>
+                  </div>
+
+                  {/* Pitch Deck action */}
+                  <button
+                    onClick={() => {
+                      window.location.href = 'mailto:invest@talapai.kz?subject=Investment Inquiry - Talap.ai';
+                    }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      padding: '12px', borderRadius: 12, background: C.blue, border: 'none', cursor: 'pointer',
+                      fontFamily: C.font, fontSize: 13, fontWeight: 700, color: '#FFFFFF',
+                      boxShadow: '0 4px 12px rgba(20,72,255,0.20)', transition: 'all 200ms'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <Icon name="award" size={16} color="#FFFFFF" />
+                    {lang === 'en' ? 'Request Pitch Deck' : lang === 'kz' ? 'Pitch Deck-ті сұрау' : 'Получить Pitch Deck'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
