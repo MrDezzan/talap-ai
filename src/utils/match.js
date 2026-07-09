@@ -4,10 +4,12 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
   if (!portfolio) return null;
 
   let aiResult = portfolio.ai_result;
-  if (aiResult && typeof aiResult === 'string') {
+  while (aiResult && typeof aiResult === 'string') {
     try {
       aiResult = JSON.parse(aiResult);
-    } catch (e) {}
+    } catch (e) {
+      break;
+    }
   }
 
   if (!aiResult || !aiResult.top_profession) return null;
@@ -16,11 +18,39 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
   const interests = portfolio.interests || [];
   const skills = portfolio.skills || [];
 
-  const itemName = (item.name || '').toLowerCase();
-  const lowerTopProf = topProfession.toLowerCase();
+  const itemName = (item.name || '').toLowerCase().trim();
+  const lowerTopProf = topProfession.toLowerCase().trim();
 
   // Baseline matching score
   let score = 55;
+
+  // Helper to map a profession name to a standard category
+  const getCategoryForProfession = (profName) => {
+    const ln = (profName || '').toLowerCase();
+    if (ln.includes('engineer') || ln.includes('specialist') || ln.includes('analyst') || ln.includes('developer') || ln.includes('scientist')) {
+      if (ln.includes('civil') || ln.includes('robotics') || ln.includes('hardware') || ln.includes('aerospace') || ln.includes('environmental')) {
+        return 'Инженерия';
+      }
+      return 'IT и данные';
+    }
+    if (ln.includes('designer') || ln.includes('artist') || ln.includes('creator') || ln.includes('director') || ln.includes('animator')) {
+      return 'Дизайн';
+    }
+    if (ln.includes('manager') || ln.includes('consultant') || ln.includes('analyst') || ln.includes('director') || ln.includes('financial')) {
+      if (ln.includes('marketing') || ln.includes('product') || ln.includes('business') || ln.includes('financial') || ln.includes('consultant')) {
+        return 'Бизнес';
+      }
+    }
+    if (ln.includes('doctor') || ln.includes('biotech') || ln.includes('geneticist') || ln.includes('psychologist') || ln.includes('biochemist')) {
+      return 'Медицина';
+    }
+    if (ln.includes('teacher') || ln.includes('consultant') || ln.includes('learning') || ln.includes('course')) {
+      return 'Образование';
+    }
+    return 'Наука'; // default fallback
+  };
+
+  const userCategory = getCategoryForProfession(topProfession);
 
   if (isProfession) {
     // 1. Direct match with top recommended profession
@@ -29,65 +59,81 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
     } else {
       // 2. Check alternative recommended professions if present
       const alternativeProfessions = aiResult.alternative_professions || [];
+      let foundAlt = false;
       alternativeProfessions.forEach(alt => {
-        const altLower = alt.toLowerCase();
+        const altLower = alt.toLowerCase().trim();
         if (itemName.includes(altLower) || altLower.includes(itemName)) {
           score += 22;
+          foundAlt = true;
         }
       });
+
+      // 3. Category match boost (if it's in the same career path/category as top profession)
+      if (!foundAlt && userCategory && item.category && userCategory.toLowerCase() === item.category.toLowerCase()) {
+        score += 15;
+      }
     }
 
-    // 3. Match based on skills & interests compared to category/tags
+    // 4. Overlap with skills & interests compared to category/tags
     let overlaps = 0;
-    if (item.category) {
-      const catLower = item.category.toLowerCase();
-      interests.forEach(interest => {
-        if (interest.toLowerCase().includes(catLower) || catLower.includes(interest.toLowerCase())) {
-          overlaps += 2;
-        }
-      });
-    }
-
     if (item.tags) {
       item.tags.forEach(tag => {
-        const tagLower = tag.toLowerCase();
+        const tagLower = tag.toLowerCase().trim();
         interests.forEach(interest => {
-          if (interest.toLowerCase().includes(tagLower) || tagLower.includes(interest.toLowerCase())) {
-            overlaps += 1;
-          }
-        });
-        skills.forEach(skill => {
-          if (skill.toLowerCase().includes(tagLower) || tagLower.includes(skill.toLowerCase())) {
+          if (interest.toLowerCase().includes(tagLower)) {
             overlaps += 1.5;
           }
         });
+        skills.forEach(skill => {
+          if (skill.toLowerCase().includes(tagLower)) {
+            overlaps += 2;
+          }
+        });
       });
     }
-    score += Math.round(overlaps * 4);
+    score += Math.round(overlaps * 3);
   } else {
     // For grants:
     // Match based on grant tags (IT, Kazakhstan, Abroad) compared to recommended profession, skills & interests
     let overlaps = 0;
     if (item.tags) {
       item.tags.forEach(tag => {
-        const tagLower = tag.toLowerCase();
-        if (lowerTopProf && (lowerTopProf.includes(tagLower) || tagLower.includes(lowerTopProf))) {
+        const tagLower = tag.toLowerCase().trim();
+        // If the grant matches userCategory (e.g. IT tag for IT user)
+        if (userCategory === 'IT и данные' && (tagLower === 'it' || tagLower === 'ai' || tagLower === 'программирование')) {
           overlaps += 3;
         }
+        if (userCategory === 'Инженерия' && (tagLower === 'инженерия' || tagLower === 'строительство' || tagLower === 'робототехника')) {
+          overlaps += 3;
+        }
+        if (userCategory === 'Бизнес' && (tagLower === 'бизнес' || tagLower === 'маркетинг' || tagLower === 'менеджмент')) {
+          overlaps += 3;
+        }
+        if (userCategory === 'Дизайн' && (tagLower === 'дизайн' || tagLower === 'креатив' || tagLower === 'интерфейсы')) {
+          overlaps += 3;
+        }
+
+        if (lowerTopProf && (lowerTopProf.includes(tagLower) || tagLower.includes(lowerTopProf))) {
+          overlaps += 2;
+        }
         interests.forEach(interest => {
-          if (interest.toLowerCase().includes(tagLower) || tagLower.includes(interest.toLowerCase())) {
-            overlaps += 1.5;
+          if (interest.toLowerCase().includes(tagLower)) {
+            overlaps += 1;
           }
         });
         skills.forEach(skill => {
-          if (skill.toLowerCase().includes(tagLower) || tagLower.includes(skill.toLowerCase())) {
-            overlaps += 1.5;
+          if (skill.toLowerCase().includes(tagLower)) {
+            overlaps += 1;
           }
         });
       });
     }
-    score += Math.round(overlaps * 5);
+    score += Math.round(overlaps * 4);
   }
+
+  // Add a stable pseudo-random fluctuation based on the item name length so it doesn't look flat
+  const nameHash = (itemName.length + (item.category || '').length) % 6;
+  score += nameHash;
 
   // Bounds checking
   if (score > 98) score = 98;
