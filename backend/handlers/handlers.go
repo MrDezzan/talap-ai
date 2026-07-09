@@ -7,12 +7,20 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"talkd-backend/auth"
 	"talkd-backend/models"
+)
+
+var (
+	grantsCache           []models.Grant
+	grantsCacheMutex      sync.RWMutex
+	professionsCache      []models.Profession
+	professionsCacheMutex sync.RWMutex
 )
 
 func Register(db *gorm.DB) gin.HandlerFunc {
@@ -127,42 +135,131 @@ func GetMe(db *gorm.DB) gin.HandlerFunc {
 
 func GetDashboardData(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var grants []models.Grant
-		db.Limit(4).Find(&grants)
+		grantsCacheMutex.RLock()
+		cached := grantsCache
+		grantsCacheMutex.RUnlock()
+
+		if len(cached) == 0 {
+			var dbGrants []models.Grant
+			db.Find(&dbGrants)
+			grantsCacheMutex.Lock()
+			grantsCache = dbGrants
+			cached = dbGrants
+			grantsCacheMutex.Unlock()
+		}
+
+		limit := 4
+		if len(cached) < limit {
+			limit = len(cached)
+		}
+		grantsSlice := cached[:limit]
+
 		stats := []gin.H{
 			{"label": "Подходящих грантов", "value": "24", "delta": "+3 за неделю", "icon": "award"},
 			{"label": "Профессий в фокусе", "value": "6", "delta": "обновлено вчера", "icon": "compass"},
 			{"label": "Готовность портфолио", "value": "78%", "delta": "+12% за месяц", "icon": "trophy"},
 		}
-		c.JSON(http.StatusOK, gin.H{"grants": grants, "stats": stats})
+		c.JSON(http.StatusOK, gin.H{"grants": grantsSlice, "stats": stats})
 	}
 }
 
 func GetGrants(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		q := c.Query("q")
-		var grants []models.Grant
-		if q != "" {
-			term := "%" + q + "%"
-			db.Where("name ILIKE ? OR subtitle ILIKE ? OR description ILIKE ? OR country ILIKE ? OR array_to_string(tags, ',') ILIKE ?", term, term, term, term, term).Find(&grants)
-		} else {
-			db.Find(&grants)
+		q := strings.TrimSpace(strings.ToLower(c.Query("q")))
+
+		grantsCacheMutex.RLock()
+		cached := grantsCache
+		grantsCacheMutex.RUnlock()
+
+		if len(cached) == 0 {
+			var dbGrants []models.Grant
+			db.Find(&dbGrants)
+			grantsCacheMutex.Lock()
+			grantsCache = dbGrants
+			cached = dbGrants
+			grantsCacheMutex.Unlock()
 		}
-		c.JSON(http.StatusOK, grants)
+
+		if q == "" {
+			c.JSON(http.StatusOK, cached)
+			return
+		}
+
+		var filtered []models.Grant
+		for _, g := range cached {
+			name := strings.ToLower(g.Name)
+			sub := strings.ToLower(g.Subtitle)
+			desc := strings.ToLower(g.Description)
+			country := strings.ToLower(g.Country)
+
+			match := strings.Contains(name, q) || 
+				strings.Contains(sub, q) || 
+				strings.Contains(desc, q) || 
+				strings.Contains(country, q)
+
+			if !match {
+				for _, tag := range g.Tags {
+					if strings.Contains(strings.ToLower(tag), q) {
+						match = true
+						break
+					}
+				}
+			}
+
+			if match {
+				filtered = append(filtered, g)
+			}
+		}
+		c.JSON(http.StatusOK, filtered)
 	}
 }
 
 func GetProfessions(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		q := c.Query("q")
-		var professions []models.Profession
-		if q != "" {
-			term := "%" + q + "%"
-			db.Where("name ILIKE ? OR description ILIKE ? OR category ILIKE ? OR array_to_string(tags, ',') ILIKE ?", term, term, term, term).Find(&professions)
-		} else {
-			db.Find(&professions)
+		q := strings.TrimSpace(strings.ToLower(c.Query("q")))
+
+		professionsCacheMutex.RLock()
+		cached := professionsCache
+		professionsCacheMutex.RUnlock()
+
+		if len(cached) == 0 {
+			var dbProfs []models.Profession
+			db.Find(&dbProfs)
+			professionsCacheMutex.Lock()
+			professionsCache = dbProfs
+			cached = dbProfs
+			professionsCacheMutex.Unlock()
 		}
-		c.JSON(http.StatusOK, professions)
+
+		if q == "" {
+			c.JSON(http.StatusOK, cached)
+			return
+		}
+
+		var filtered []models.Profession
+		for _, p := range cached {
+			name := strings.ToLower(p.Name)
+			desc := strings.ToLower(p.Description)
+			cat := strings.ToLower(p.Category)
+
+			match := strings.Contains(name, q) || 
+				strings.Contains(desc, q) || 
+				strings.Contains(cat, q)
+
+			if !match {
+				for _, tag := range p.Tags {
+					if strings.Contains(strings.ToLower(tag), q) {
+						match = true
+						break
+					}
+				}
+			}
+
+			if match {
+				filtered = append(filtered, p)
+			}
+		}
+		c.JSON(http.StatusOK, filtered)
 	}
 }
 

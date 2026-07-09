@@ -47,7 +47,7 @@ type Profession struct {
 
 type Portfolio struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`
-	UserID       uint           `json:"user_id"`
+	UserID       uint           `gorm:"uniqueIndex" json:"user_id"`
 	Bio          string         `json:"bio"`
 	ENT          string         `json:"ent"`
 	English      string         `json:"english"`
@@ -61,17 +61,17 @@ type Portfolio struct {
 
 type ChatThread struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	UserID    uint      `json:"user_id"`
+	UserID    uint      `gorm:"index:idx_user_updated" json:"user_id"`
 	Title     string    `json:"title"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt time.Time `gorm:"index:idx_user_updated,priority:2" json:"updated_at"`
 }
 
 type ChatMessage struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	ThreadID  uint           `json:"thread_id"`
+	ThreadID  uint           `gorm:"index:idx_thread_created" json:"thread_id"`
 	Role      string         `json:"role"` // "user" or "assistant"
 	Content   string         `json:"content"`
 	Roadmap   datatypes.JSON `gorm:"type:json" json:"roadmap"`
 	CVData    datatypes.JSON `gorm:"type:json" json:"cv_data"`
-	CreatedAt time.Time      `json:"created_at"`
+	CreatedAt time.Time      `gorm:"index:idx_thread_created,priority:2" json:"created_at"`
 }
