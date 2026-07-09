@@ -22,10 +22,11 @@ const C = {
 };
 
 function RoadmapMessage({ steps, onApply, onRecreate }) {
+  const { t } = useLanguage();
   if (!steps || !steps.length) return null;
   return (
     <div style={{ marginTop: 20, padding: 20, background: C.blue50, borderRadius: 16, border: `1px solid ${C.blue100}` }}>
-      <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>Твой план развития</div>
+      <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 16 }}>{t('nav_roadmap')}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
         {steps.map((step, i) => (
           <div key={i} style={{ display: 'flex', gap: 16, position: 'relative' }}>
@@ -36,7 +37,7 @@ function RoadmapMessage({ steps, onApply, onRecreate }) {
               {i < steps.length - 1 && <div style={{ width: 2, flex: 1, background: C.blue100, margin: '4px 0' }} />}
             </div>
             <div style={{ flex: 1, paddingBottom: 24 }}>
-              <div style={{ fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.ink900 }}>{step.title || step.Title || step.step || step.Step || `Шаг ${i + 1}`}</div>
+              <div style={{ fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.ink900 }}>{step.title || step.Title || step.step || step.Step || `${t('nav_roadmap')} ${i + 1}`}</div>
               <div style={{ fontFamily: C.font, fontSize: 13, color: C.ink500, marginTop: 2, lineHeight: 1.4 }}>{step.description || step.Description || step.desc || step.Desc || ''}</div>
               {(step.duration || step.Duration || step.time || step.Time) && <div style={{ display: 'inline-flex', marginTop: 8, padding: '2px 8px', borderRadius: 4, background: C.paper, border: `1px solid ${C.hairline}`, fontFamily: '"Geist Mono",monospace', fontSize: 11, color: C.blue, fontWeight: 600 }}>{step.duration || step.Duration || step.time || step.Time}</div>}
             </div>
@@ -56,7 +57,7 @@ function RoadmapMessage({ steps, onApply, onRecreate }) {
           onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
           <Icon name="check" size={14} color="#FFFFFF" />
-          Применить как карьерный путь
+          {t('chat_apply_roadmap')}
         </button>
         <button
           onClick={onRecreate}
@@ -70,7 +71,7 @@ function RoadmapMessage({ steps, onApply, onRecreate }) {
           onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
         >
           <Icon name="sparkles" size={14} color={C.blue} />
-          Пересоздать план
+          {t('chat_recreate_roadmap')}
         </button>
       </div>
     </div>

@@ -24,7 +24,7 @@ export default function Sidebar() {
     { to: '/chat',        label: t('nav_chat'),          icon: 'sparkles' },
   ];
   if (user?.role === 'admin') {
-    navItems.push({ to: '/admin', label: 'Админ-панель', icon: 'settings' });
+    navItems.push({ to: '/admin', label: t('nav_admin'), icon: 'settings' });
   }
 
   if (isMobile) {
@@ -84,7 +84,7 @@ export default function Sidebar() {
             }}
           >
             <Avatar name={user?.name || 'U'} size={20} />
-            <span>Меню</span>
+            <span>{t('nav_menu')}</span>
           </button>
         </nav>
 
@@ -144,7 +144,7 @@ export default function Sidebar() {
                     { to: '/settings', label: t('nav_settings'), icon: 'settings' },
                   ];
                   if (user?.role === 'admin') {
-                    mobileSheetItems.push({ to: '/admin', label: 'Админ-панель', icon: 'settings' });
+                    mobileSheetItems.push({ to: '/admin', label: t('nav_admin'), icon: 'settings' });
                   }
                   return mobileSheetItems.map(item => (
                     <button
@@ -202,7 +202,7 @@ export default function Sidebar() {
                   color: '#FF4D4D', width: '100%'
                 }}
               >
-                Выйти из аккаунта
+                {t('nav_logout')}
               </button>
             </div>
           </div>
