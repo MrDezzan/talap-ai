@@ -187,7 +187,20 @@ export default function Dashboard() {
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-          <Mesh data-tour="hero-mesh" intensity={0.85} style={{ borderRadius: 16, padding: isMobile ? 20 : 28, minHeight: 200 }}>
+          <Mesh 
+            data-tour="hero-mesh" 
+            intensity={0.85} 
+            style={{ 
+              borderRadius: 16, 
+              padding: isMobile ? 20 : 28, 
+              minHeight: 200,
+              transform: (showTour && tourStep === 1) ? 'scale(1.035)' : 'none',
+              boxShadow: (showTour && tourStep === 1) ? '0 20px 40px rgba(20,72,255,0.25)' : 'none',
+              transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms ease',
+              position: 'relative',
+              zIndex: (showTour && tourStep === 1) ? 10002 : 'auto'
+            }}
+          >
             <Chip dot tone="ai" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(10px)' }}>
               {t('grants_ai_tip')}
             </Chip>
@@ -225,7 +238,18 @@ export default function Dashboard() {
             </div>
           </Mesh>
 
-          <div data-tour="stats-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+          <div 
+            data-tour="stats-grid" 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
+              gap: 16,
+              transform: (showTour && tourStep === 2) ? 'scale(1.035)' : 'none',
+              transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative',
+              zIndex: (showTour && tourStep === 2) ? 10002 : 'auto'
+            }}
+          >
             {stats.map((s, i) => (
               <Card key={i}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -442,8 +466,8 @@ export default function Dashboard() {
                 {
                   bg: 'linear-gradient(135deg, #1448FF 0%, #3B6EFF 100%)',
                   emoji: '🎉',
-                  title: `Твоя специальность — ${prof}!`,
-                  desc: 'Talap AI проанализировал твои ответы и подобрал оптимальный карьерный путь. Давай покажем, как работает платформа — это займёт минуту.',
+                  title: 'Мы подобрали тебе направление!',
+                  desc: `Talap AI проанализировал твои ответы. Рекомендуемая специальность: «${prof}». Давай покажем, как устроен твой личный кабинет — это займёт ровно минуту.`,
                   action: null,
                   light: true,
                 },
