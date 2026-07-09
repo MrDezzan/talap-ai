@@ -311,10 +311,6 @@ function Hero() {
                   </div>
                   <div>
                     <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 800, color: C.ink900 }}>Talap AI</div>
-                    <div style={{ fontFamily: C.font, fontSize: 11, color: C.success700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-                      {lang === 'en' ? 'Live Simulator' : lang === 'kz' ? 'Симулятор белсенді' : 'ИИ Симулирует'}
-                    </div>
                   </div>
                 </div>
 
@@ -493,9 +489,8 @@ function Features() {
   return (
     <section id="Возможности" style={{ padding: isMobile ? '64px 16px' : '80px 40px', background: C.mist }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <Chip>{t('land_nav_features')}</Chip>
-          <h2 style={{ fontFamily: C.font, fontSize: isMobile ? 32 : 40, fontWeight: 800, letterSpacing: '-0.03em', color: C.ink900, margin: '16px 0 16px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <h2 style={{ fontFamily: C.font, fontSize: isMobile ? 32 : 40, fontWeight: 800, letterSpacing: '-0.03em', color: C.ink900, margin: '0 0 16px' }}>
             {t('land_features_title')}
           </h2>
           <p style={{ fontFamily: C.font, fontSize: isMobile ? 15 : 17, color: C.ink700, maxWidth: 520, margin: '0 auto' }}>
@@ -530,9 +525,8 @@ function HowItWorks() {
   return (
     <section id="how" style={{ padding: isMobile ? '64px 16px' : '80px 40px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <Chip>{t('land_nav_how')}</Chip>
-          <h2 style={{ fontFamily: C.font, fontSize: isMobile ? 32 : 40, fontWeight: 800, letterSpacing: '-0.03em', color: C.ink900, margin: '16px 0 16px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <h2 style={{ fontFamily: C.font, fontSize: isMobile ? 32 : 40, fontWeight: 800, letterSpacing: '-0.03em', color: C.ink900, margin: '0 0 16px' }}>
             {lang === 'en' ? 'Four steps to your dream career' : lang === 'kz' ? 'Арман мансабына төрт қадам' : 'Четыре шага до карьеры мечты'}
           </h2>
         </div>
@@ -579,9 +573,8 @@ function Testimonials() {
   return (
     <section style={{ padding: isMobile ? '64px 16px' : '80px 40px', background: C.mist }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <Chip tone="success" dot>{lang === 'en' ? 'Success Stories' : lang === 'kz' ? 'Жетістік тарихы' : 'Истории успеха'}</Chip>
-          <h2 style={{ fontFamily: C.font, fontSize: isMobile ? 32 : 40, fontWeight: 800, letterSpacing: '-0.03em', color: C.ink900, margin: '16px 0 0' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <h2 style={{ fontFamily: C.font, fontSize: isMobile ? 32 : 40, fontWeight: 800, letterSpacing: '-0.03em', color: C.ink900, margin: '0 0 16px' }}>
             {lang === 'en' ? 'They already found their way' : lang === 'kz' ? 'Олар өз жолын тапты' : 'Они уже нашли свой путь'}
           </h2>
         </div>
