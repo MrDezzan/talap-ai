@@ -28,7 +28,7 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
       score += 35;
     } else {
       // 2. Check alternative recommended professions if present
-      const alternativeProfessions = aiProfile.alternative_professions || [];
+      const alternativeProfessions = aiResult.alternative_professions || [];
       alternativeProfessions.forEach(alt => {
         const altLower = alt.toLowerCase();
         if (itemName.includes(altLower) || altLower.includes(itemName)) {
