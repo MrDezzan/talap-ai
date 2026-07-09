@@ -746,8 +746,8 @@ func AIChat(db *gorm.DB) gin.HandlerFunc {
 ПРАВИЛА И ИНТЕРВЬЮ ДЛЯ ROADMAP (Карьерного пути):
 1. Если пользователь просит составить карьерный путь (или Roadmap), ты НЕ имеешь права генерировать его сразу.
 2. Сначала задай пользователю 2-3 уточняющих вопроса по очереди. Спроси про его текущую базу, сколько времени он готов уделять учебе и какую конкретную цель он преследует (например, фриланс, стартап или работа в BigTech).
-3. Как только пользователь ответит, сгенерируй ПОДРОБНЫЙ, ДЛИННЫЙ И КРУТОЙ роадмап из 5-8 шагов.
-4. Каждый шаг в "roadmap" ОБЯЗАТЕЛЬНО должен быть детальным: пиши конкретные книги, технологии, фреймворки, методы и практические проекты, которые нужно реализовать на этом этапе.
+3. Как только пользователь ответит, сгенерируй ОЧЕНЬ ПОДРОБНЫЙ, ДЛИННЫЙ И БОЛЬШОЙ роадмап из 6-9 шагов.
+4. Каждый шаг в "roadmap" ОБЯЗАТЕЛЬНО должен быть детальным и исчерпывающим: пиши конкретные книги, технологии, фреймворки, методы, практические пет-проекты и полезные ссылки/ресурсы. Не ограничивайся общими словами.
 5. Возвращай "roadmap" в JSON-ответе только тогда, когда пользователь ответил на твои вопросы.
 
 ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:
@@ -928,6 +928,61 @@ func AIChat(db *gorm.DB) gin.HandlerFunc {
 		})
 	}
 }
+
+func UpdatePortfolioRoadmap(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+		uid, ok := userID.(uint)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user context"})
+			return
+		}
+
+		var input struct {
+			Roadmap []RoadmapStep `json:"roadmap"`
+		}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var portfolio models.Portfolio
+		if err := db.Where("user_id = ?", uid).First(&portfolio).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Portfolio not found"})
+			return
+		}
+
+		var aiRes AnalysisResult
+		if len(portfolio.AIResult) > 0 {
+			if err := json.Unmarshal(portfolio.AIResult, &aiRes); err != nil {
+				log.Printf("Unmarshal portfolio.AIResult error: %v", err)
+			}
+		}
+
+		// Replace the roadmap with the new custom one
+		aiRes.Roadmap = input.Roadmap
+
+		newJSON, err := json.Marshal(aiRes)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal updated roadmap"})
+			return
+		}
+
+		portfolio.AIResult = newJSON
+		portfolio.UpdatedAt = time.Now()
+		if err := db.Save(&portfolio).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save updated portfolio"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "ai_result": aiRes})
+	}
+}
+
 
 func GetChatThreads(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

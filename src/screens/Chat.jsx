@@ -21,7 +21,7 @@ const C = {
   font: 'var(--font-sans)',
 };
 
-function RoadmapMessage({ steps }) {
+function RoadmapMessage({ steps, onApply, onRecreate }) {
   if (!steps || !steps.length) return null;
   return (
     <div style={{ marginTop: 20, padding: 20, background: C.blue50, borderRadius: 16, border: `1px solid ${C.blue100}` }}>
@@ -43,12 +43,42 @@ function RoadmapMessage({ steps }) {
           </div>
         ))}
       </div>
+      <div style={{ display: 'flex', gap: 12, marginTop: 12, borderTop: `1px solid ${C.hairline}`, paddingTop: 16, flexWrap: 'wrap' }}>
+        <button
+          onClick={onApply}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10,
+            background: C.blue, border: 'none', cursor: 'pointer',
+            fontFamily: C.font, fontSize: 13, fontWeight: 700, color: '#FFFFFF',
+            boxShadow: '0 4px 10px rgba(20,72,255,0.15)', transition: 'all 200ms'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+        >
+          <Icon name="check" size={14} color="#FFFFFF" />
+          Применить как карьерный путь
+        </button>
+        <button
+          onClick={onRecreate}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10,
+            background: '#FFFFFF', border: `1px solid ${C.hairline}`, cursor: 'pointer',
+            fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink700,
+            transition: 'all 200ms'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = C.blue50}
+          onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+        >
+          <Icon name="sparkles" size={14} color={C.blue} />
+          Пересоздать план
+        </button>
+      </div>
     </div>
   );
 }
 
 export default function Chat() {
-  const { user, aiProfile } = useAuth();
+  const { user, aiProfile, fetchAIProfile } = useAuth();
   const { t } = useLanguage();
   const isMobile = useMobile();
   const { 
@@ -287,7 +317,23 @@ export default function Chat() {
                       </ReactMarkdown>
                     </div>
                   </div>
-                  {m.roadmap && <RoadmapMessage steps={m.roadmap} />}
+                  {m.roadmap && (
+                    <RoadmapMessage 
+                      steps={m.roadmap} 
+                      onApply={async () => {
+                        try {
+                          await api.put('/portfolio/roadmap', { roadmap: m.roadmap });
+                          await fetchAIProfile();
+                          alert('План успешно применён! Теперь этот роадмап отображается на вкладке «Карьерный путь».');
+                        } catch (err) {
+                          alert('Не удалось применить план: ' + (err.error || err.message));
+                        }
+                      }}
+                      onRecreate={() => {
+                        send('Мне не совсем подходит этот план. Пожалуйста, пересоздай его, сделай ещё более подробным, большим и практичным.');
+                      }}
+                    />
+                  )}
                   {m.cv_data && Object.keys(m.cv_data).length > 0 && (
                     <div style={{ marginTop: 12 }}>
                       <Button 

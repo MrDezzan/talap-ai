@@ -68,6 +68,7 @@ func main() {
 			auth.PUT("/portfolio", handlers.UpdatePortfolio(db))
 			auth.POST("/ai/analyze", handlers.AnalyzeProfile(db))
 			auth.POST("/ai/chat", handlers.AIChat(db))
+			auth.PUT("/portfolio/roadmap", handlers.UpdatePortfolioRoadmap(db))
 			auth.GET("/chats", handlers.GetChatThreads(db))
 			auth.GET("/chats/:id/messages", handlers.GetChatMessages(db))
 		}
