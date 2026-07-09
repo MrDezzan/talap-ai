@@ -10,6 +10,8 @@ import Search from '../components/Search';
 import Progress from '../components/Progress';
 import { api } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { calculateRealMatch } from '../utils/match';
 
 const C = {
   ink900: '#0A1230', ink700: '#2A3457', ink500: '#5A6485', ink300: '#9AA3BF',
@@ -64,20 +66,25 @@ function GrantDetailModal({ grant, onClose, t, lang }) {
         </div>
 
         <div style={{ padding: 32 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
-            {[
-              { label: t('grants_amount') || 'Сумма', value: grant.amount },
-              { label: t('grants_deadline') || 'Дедлайн', value: `${grant.deadline_days} ${t('days') || 'дн.'}`, tone: grant.tone === 'warn' ? 'warn' : null },
-              { label: 'Match', value: `${grant.match_percentage}%`, tone: 'success' },
-            ].map((s, i) => (
-              <div key={i} style={{ background: C.mist, borderRadius: 10, padding: 14 }}>
-                <div style={{ fontFamily: C.font, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.ink500 }}>{s.label}</div>
-                <div style={{ fontFamily: C.mono, fontSize: 18, fontWeight: 700, color: s.tone === 'warn' ? C.warn700 : s.tone === 'success' ? C.success700 : C.ink900, marginTop: 4 }}>
-                  {s.value}
-                </div>
+          {(() => {
+            const realMatchScore = calculateRealMatch(grant, aiProfile, false);
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: realMatchScore ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 12, marginBottom: 28 }}>
+                {[
+                  { label: t('grants_amount') || 'Сумма', value: grant.amount },
+                  { label: t('grants_deadline') || 'Дедлайн', value: `${grant.deadline_days} ${t('days') || 'дн.'}`, tone: grant.tone === 'warn' ? 'warn' : null },
+                  realMatchScore ? { label: 'Match', value: `${realMatchScore}%`, tone: 'success' } : null,
+                ].filter(Boolean).map((s, i) => (
+                  <div key={i} style={{ background: C.mist, borderRadius: 10, padding: 14 }}>
+                    <div style={{ fontFamily: C.font, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.ink500 }}>{s.label}</div>
+                    <div style={{ fontFamily: C.mono, fontSize: 18, fontWeight: 700, color: s.tone === 'warn' ? C.warn700 : s.tone === 'success' ? C.success700 : C.ink900, marginTop: 4 }}>
+                      {s.value}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, color: C.ink900, marginBottom: 8 }}>{t('grants_about') || 'Описание'}</div>
@@ -157,6 +164,7 @@ export default function Grants() {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const isMobile = useMobile();
+  const { aiProfile } = useAuth();
   const [grants, setGrants] = useState([]);
   const [portfolio, setPortfolio] = useState({});
   const [loading, setLoading] = useState(true);
@@ -234,7 +242,12 @@ export default function Grants() {
                     <div style={{ fontFamily: C.font, fontSize: 13, color: C.ink500 }}>{g.subtitle} · {g.country}</div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontFamily: C.mono, fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 4 }}>{g.match_percentage}% match</div>
+                    {(() => {
+                      const score = calculateRealMatch(g, aiProfile, false);
+                      return score ? (
+                        <div style={{ fontFamily: C.mono, fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 4 }}>{score}% match</div>
+                      ) : null;
+                    })()}
                     <div style={{ fontFamily: C.font, fontSize: 12, color: g.tone === 'warn' ? C.warn700 : C.ink500, marginBottom: 8 }}>
                       {g.deadline_days} {t('grants_deadline')}
                     </div>

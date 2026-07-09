@@ -9,6 +9,8 @@ import Chip from '../components/Chip';
 import Button from '../components/Button';
 import { api } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { calculateRealMatch } from '../utils/match';
 
 const C = {
   ink900: '#0A1230', ink700: '#2A3457', ink500: '#5A6485',
@@ -18,7 +20,7 @@ const C = {
   font: 'var(--font-sans)',
 };
 
-function ProfessionModal({ profession, onClose, onAskAI, t }) {
+function ProfessionModal({ profession, onClose, onAskAI, t, aiProfile }) {
   if (!profession) return null;
   return (
     <div
@@ -53,18 +55,23 @@ function ProfessionModal({ profession, onClose, onAskAI, t }) {
         </div>
 
         <div style={{ padding: 28 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
-            {[
-              { label: t('cat_match'), value: `${profession.match_percentage || 0}%` },
-              { label: t('cat_salary'), value: profession.salary || '-' },
-              { label: t('cat_growth'), value: profession.growth || '-' },
-            ].map((s, i) => (
-              <div key={i} style={{ background: C.mist, borderRadius: 10, padding: 14 }}>
-                <div style={{ fontFamily: C.font, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.ink500 }}>{s.label}</div>
-                <div style={{ fontFamily: '"Geist Mono",monospace', fontSize: 16, fontWeight: 700, color: C.ink900, marginTop: 4 }}>{s.value}</div>
+          {(() => {
+            const realMatchScore = calculateRealMatch(profession, aiProfile, true);
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: realMatchScore ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+                {[
+                  realMatchScore ? { label: t('cat_match'), value: `${realMatchScore}%` } : null,
+                  { label: t('cat_salary'), value: profession.salary || '-' },
+                  { label: t('cat_growth'), value: profession.growth || '-' },
+                ].filter(Boolean).map((s, i) => (
+                  <div key={i} style={{ background: C.mist, borderRadius: 10, padding: 14 }}>
+                    <div style={{ fontFamily: C.font, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.ink500 }}>{s.label}</div>
+                    <div style={{ fontFamily: '"Geist Mono",monospace', fontSize: 16, fontWeight: 700, color: C.ink900, marginTop: 4 }}>{s.value}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900, marginBottom: 8 }}>{t('cat_modal_about')}</div>
@@ -89,6 +96,7 @@ export default function Catalog() {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const isMobile = useMobile();
+  const { aiProfile } = useAuth();
   const [professions, setProfessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -165,12 +173,17 @@ export default function Catalog() {
               <div style={{ fontFamily: C.font, fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: C.ink900, marginTop: 14 }}>
                 {p.name}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                <Icon name="sparkles" size={12} color={C.blue} />
-                <span style={{ fontFamily: '"Geist Mono", monospace', fontSize: 12, fontWeight: 600, color: C.blue }}>
-                  {p.match_percentage || 0}% {t('cat_match')}
-                </span>
-              </div>
+              {(() => {
+                const score = calculateRealMatch(p, aiProfile, true);
+                return score ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                    <Icon name="sparkles" size={12} color={C.blue} />
+                    <span style={{ fontFamily: '"Geist Mono", monospace', fontSize: 12, fontWeight: 600, color: C.blue }}>
+                      {score}% {t('cat_match')}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.hairline}` }}>
                 <div>
                   <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>{t('cat_salary')}</div>
@@ -190,6 +203,7 @@ export default function Catalog() {
         <ProfessionModal
           profession={selectedProfession}
           t={t}
+          aiProfile={aiProfile}
           onClose={() => setSelectedProfession(null)}
           onAskAI={() => { setSelectedProfession(null); navigate('/chat'); }}
         />
