@@ -54,6 +54,11 @@ type Recommendation struct {
 	Name            string `json:"name"`
 	Description     string `json:"description"`
 	MatchPercentage int    `json:"match_percentage"`
+	Subtitle        string `json:"subtitle,omitempty"`
+	DeadlineDays    int    `json:"deadline_days,omitempty"`
+	Tone            string `json:"tone,omitempty"`
+	Country         string `json:"country,omitempty"`
+	Amount          string `json:"amount,omitempty"`
 }
 
 type AnalysisResult struct {
@@ -571,6 +576,7 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		db.FirstOrCreate(&portfolio, models.Portfolio{UserID: uid})
+		enrichGrants(result.Grants)
 		resJSON, _ := json.Marshal(result)
 		db.Model(&portfolio).Updates(models.Portfolio{
 			Interests:   portfolio.Interests,
@@ -580,6 +586,74 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		})
 
 		c.JSON(http.StatusOK, result)
+	}
+}
+
+func enrichGrants(grants []Recommendation) {
+	for i, g := range grants {
+		switch g.Name {
+		case "AITU Talent Grant":
+			grants[i].Subtitle = "Астана, Astana IT University"
+			grants[i].DeadlineDays = 25
+			grants[i].Tone = "blue"
+			grants[i].Country = "Казахстан"
+			grants[i].Amount = "100% грант"
+		case "Google STEP Internship":
+			grants[i].Subtitle = "Стажировка в Google"
+			grants[i].DeadlineDays = 45
+			grants[i].Tone = "blue"
+			grants[i].Country = "США/Европа"
+			grants[i].Amount = "$5,000/мес"
+		case "KBTU Olympiad Grant":
+			grants[i].Subtitle = "Алматы, КБТУ"
+			grants[i].DeadlineDays = 14
+			grants[i].Tone = "warn"
+			grants[i].Country = "Казахстан"
+			grants[i].Amount = "100% грант"
+		case "Грант Назарбаев Университета (NU)":
+			grants[i].Subtitle = "Астана, NU"
+			grants[i].DeadlineDays = 30
+			grants[i].Tone = "blue"
+			grants[i].Country = "Казахстан"
+			grants[i].Amount = "100% грант"
+		case "Болашак":
+			grants[i].Subtitle = "Обучение за рубежом"
+			grants[i].DeadlineDays = 60
+			grants[i].Tone = "blue"
+			grants[i].Country = "Весь мир"
+			grants[i].Amount = "100% оплата"
+		case "Turkiye Burslari":
+			grants[i].Subtitle = "Обучение в Турции"
+			grants[i].DeadlineDays = 12
+			grants[i].Tone = "warn"
+			grants[i].Country = "Турция"
+			grants[i].Amount = "100% грант + стипендия"
+		case "SDU Internal Grant":
+			grants[i].Subtitle = "Каскелен, СДУ"
+			grants[i].DeadlineDays = 8
+			grants[i].Tone = "warn"
+			grants[i].Country = "Казахстан"
+			grants[i].Amount = "до 100% скидка"
+		case "Chevening Scholarship":
+			grants[i].Subtitle = "Магистратура в Великобритании"
+			grants[i].DeadlineDays = 90
+			grants[i].Tone = "blue"
+			grants[i].Country = "Великобритания"
+			grants[i].Amount = "100% покрытие"
+		case "DAAD Scholarship":
+			grants[i].Subtitle = "Обучение в Германии"
+			grants[i].DeadlineDays = 75
+			grants[i].Tone = "blue"
+			grants[i].Country = "Германия"
+			grants[i].Amount = "Бесплатное обучение + €934/мес"
+		default:
+			// Fallbacks
+			grants[i].Subtitle = "Государственный грант"
+			grants[i].DeadlineDays = 30
+			grants[i].Tone = "blue"
+			grants[i].Country = "Казахстан"
+			grants[i].Amount = "100% грант"
+		}
 	}
 }
 
