@@ -6,8 +6,9 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
+      const hasToken = localStorage.getItem('token');
       const stored = localStorage.getItem('talap_user');
-      return stored ? JSON.parse(stored) : null;
+      return (hasToken && stored) ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
@@ -17,8 +18,9 @@ export function AuthProvider({ children }) {
 
   const [aiProfile, setAiProfile] = useState(() => {
     try {
+      const hasToken = localStorage.getItem('token');
       const stored = localStorage.getItem('talap_ai_profile');
-      return stored ? JSON.parse(stored) : null;
+      return (hasToken && stored) ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
@@ -53,13 +55,20 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    if (user) {
+    const hasToken = localStorage.getItem('token');
+    if (user && hasToken) {
       fetchMe();
       fetchAIProfile();
     } else {
+      // Clear half-sessions
+      localStorage.removeItem('token');
+      localStorage.removeItem('talap_user');
+      localStorage.removeItem('talap_ai_profile');
+      setUser(null);
+      setAiProfile(null);
       setAiProfileLoaded(true);
     }
-  }, []); // Only on initial mount if user exists
+  }, []); // Only on initial mount if user and token exist
 
   const login = async (email, password) => {
     setLoading(true);
