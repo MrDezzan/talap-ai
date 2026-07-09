@@ -1,7 +1,7 @@
 // Helper to calculate real match percentage based on the student's AI Profile (skills, interests, top profession).
 // Returns null if the user has not completed the quiz or doesn't have an AI profile.
 export const calculateRealMatch = (item, aiProfile, isProfession = false) => {
-  if (!aiProfile) return null;
+  if (!aiProfile || !aiProfile.top_profession) return null;
 
   const topProfession = aiProfile.top_profession || '';
   const interests = aiProfile.interests || [];
