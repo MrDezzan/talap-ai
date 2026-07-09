@@ -23,7 +23,7 @@ const C = {
   mono: '"Geist Mono", monospace',
 };
 
-function GrantDetailModal({ grant, onClose, t, lang }) {
+function GrantDetailModal({ grant, onClose, t, lang, portfolio }) {
   if (!grant) return null;
   const navigate = useNavigate();
   const tags = grant.tags || ['Грант'];
@@ -280,7 +280,7 @@ export default function Grants() {
         </div>
       </div>
 
-      {selectedGrant && <GrantDetailModal grant={selectedGrant} t={t} lang={lang} onClose={() => setSelectedGrant(null)} />}
+      {selectedGrant && <GrantDetailModal grant={selectedGrant} t={t} lang={lang} portfolio={portfolio} onClose={() => setSelectedGrant(null)} />}
     </div>
   );
 }
