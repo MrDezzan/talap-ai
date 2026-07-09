@@ -21,8 +21,8 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
   const itemName = (item.name || '').toLowerCase().trim();
   const lowerTopProf = topProfession.toLowerCase().trim();
 
-  // Baseline matching score
-  let score = 55;
+  // Baseline matching score is now 15% to represent low compatibility for unrelated fields
+  let score = 15;
 
   // Helper to map a profession name to a standard category
   const getCategoryForProfession = (profName) => {
@@ -55,7 +55,7 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
   if (isProfession) {
     // 1. Direct match with top recommended profession
     if (lowerTopProf && (itemName.includes(lowerTopProf) || lowerTopProf.includes(itemName))) {
-      score += 35;
+      score += 75;
     } else {
       // 2. Check alternative recommended professions if present
       const alternativeProfessions = aiResult.alternative_professions || [];
@@ -63,14 +63,14 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
       alternativeProfessions.forEach(alt => {
         const altLower = alt.toLowerCase().trim();
         if (itemName.includes(altLower) || altLower.includes(itemName)) {
-          score += 22;
+          score += 55;
           foundAlt = true;
         }
       });
 
       // 3. Category match boost (if it's in the same career path/category as top profession)
       if (!foundAlt && userCategory && item.category && userCategory.toLowerCase() === item.category.toLowerCase()) {
-        score += 15;
+        score += 35;
       }
     }
 
@@ -101,29 +101,29 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
         const tagLower = tag.toLowerCase().trim();
         // If the grant matches userCategory (e.g. IT tag for IT user)
         if (userCategory === 'IT и данные' && (tagLower === 'it' || tagLower === 'ai' || tagLower === 'программирование')) {
-          overlaps += 3;
+          overlaps += 6;
         }
         if (userCategory === 'Инженерия' && (tagLower === 'инженерия' || tagLower === 'строительство' || tagLower === 'робототехника')) {
-          overlaps += 3;
+          overlaps += 6;
         }
         if (userCategory === 'Бизнес' && (tagLower === 'бизнес' || tagLower === 'маркетинг' || tagLower === 'менеджмент')) {
-          overlaps += 3;
+          overlaps += 6;
         }
         if (userCategory === 'Дизайн' && (tagLower === 'дизайн' || tagLower === 'креатив' || tagLower === 'интерфейсы')) {
-          overlaps += 3;
+          overlaps += 6;
         }
 
         if (lowerTopProf && (lowerTopProf.includes(tagLower) || tagLower.includes(lowerTopProf))) {
-          overlaps += 2;
+          overlaps += 4;
         }
         interests.forEach(interest => {
           if (interest.toLowerCase().includes(tagLower)) {
-            overlaps += 1;
+            overlaps += 2;
           }
         });
         skills.forEach(skill => {
           if (skill.toLowerCase().includes(tagLower)) {
-            overlaps += 1;
+            overlaps += 2;
           }
         });
       });
@@ -135,9 +135,9 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
   const nameHash = (itemName.length + (item.category || '').length) % 6;
   score += nameHash;
 
-  // Bounds checking
+  // Bounds checking (minimum is now 10%, max is 98%)
   if (score > 98) score = 98;
-  if (score < 45) score = 45;
+  if (score < 10) score = 10;
 
   return score;
 };
