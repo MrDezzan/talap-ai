@@ -67,7 +67,7 @@ function GrantDetailModal({ grant, onClose, t, lang }) {
 
         <div style={{ padding: 32 }}>
           {(() => {
-            const realMatchScore = calculateRealMatch(grant, aiProfile, false);
+            const realMatchScore = calculateRealMatch(grant, portfolio, false);
             return (
               <div style={{ display: 'grid', gridTemplateColumns: realMatchScore ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 12, marginBottom: 28 }}>
                 {[
@@ -243,7 +243,7 @@ export default function Grants() {
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {(() => {
-                      const score = calculateRealMatch(g, aiProfile, false);
+                      const score = calculateRealMatch(g, portfolio, false);
                       return score ? (
                         <div style={{ fontFamily: C.mono, fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 4 }}>{score}% match</div>
                       ) : null;

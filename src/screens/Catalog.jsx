@@ -20,7 +20,7 @@ const C = {
   font: 'var(--font-sans)',
 };
 
-function ProfessionModal({ profession, onClose, onAskAI, t, aiProfile }) {
+function ProfessionModal({ profession, onClose, onAskAI, t, portfolio }) {
   if (!profession) return null;
   return (
     <div
@@ -56,7 +56,7 @@ function ProfessionModal({ profession, onClose, onAskAI, t, aiProfile }) {
 
         <div style={{ padding: 28 }}>
           {(() => {
-            const realMatchScore = calculateRealMatch(profession, aiProfile, true);
+            const realMatchScore = calculateRealMatch(profession, portfolio, true);
             return (
               <div style={{ display: 'grid', gridTemplateColumns: realMatchScore ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
                 {[
@@ -96,7 +96,7 @@ export default function Catalog() {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const isMobile = useMobile();
-  const { aiProfile } = useAuth();
+  const { portfolio } = useAuth();
   const [professions, setProfessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -141,7 +141,9 @@ export default function Catalog() {
         actions={
           <>
             <Search value={search} onChange={setSearch} placeholder={t('cat_search_label')} />
-            <Button variant="primary" icon="sparkles" size="md" onClick={() => navigate('/quiz')}>{t('cat_quiz_btn')}</Button>
+            {(!portfolio || !portfolio.ai_result) && (
+              <Button variant="primary" icon="sparkles" size="md" onClick={() => navigate('/quiz')}>{t('cat_quiz_btn')}</Button>
+            )}
           </>
         }
       />
@@ -174,7 +176,7 @@ export default function Catalog() {
                 {p.name}
               </div>
               {(() => {
-                const score = calculateRealMatch(p, aiProfile, true);
+                const score = calculateRealMatch(p, portfolio, true);
                 return score ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                     <Icon name="sparkles" size={12} color={C.blue} />
@@ -203,7 +205,7 @@ export default function Catalog() {
         <ProfessionModal
           profession={selectedProfession}
           t={t}
-          aiProfile={aiProfile}
+          portfolio={portfolio}
           onClose={() => setSelectedProfession(null)}
           onAskAI={() => { setSelectedProfession(null); navigate('/chat'); }}
         />

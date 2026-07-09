@@ -26,6 +26,16 @@ export function AuthProvider({ children }) {
     }
   });
 
+  const [portfolio, setPortfolio] = useState(() => {
+    try {
+      const hasToken = localStorage.getItem('token');
+      const stored = localStorage.getItem('talap_portfolio');
+      return (hasToken && stored) ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [aiProfileLoaded, setAiProfileLoaded] = useState(false);
 
   const fetchMe = async () => {
@@ -41,6 +51,9 @@ export function AuthProvider({ children }) {
   const fetchAIProfile = async () => {
     try {
       const data = await api.get('/portfolio');
+      setPortfolio(data);
+      localStorage.setItem('talap_portfolio', JSON.stringify(data));
+
       if (data && data.ai_result) {
         let parsed = data.ai_result;
         if (typeof parsed === 'string') parsed = JSON.parse(parsed);
@@ -64,8 +77,10 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('token');
       localStorage.removeItem('talap_user');
       localStorage.removeItem('talap_ai_profile');
+      localStorage.removeItem('talap_portfolio');
       setUser(null);
       setAiProfile(null);
+      setPortfolio(null);
       setAiProfileLoaded(true);
     }
   }, []); // Only on initial mount if user and token exist
@@ -98,6 +113,8 @@ export function AuthProvider({ children }) {
       const data = await api.post('/ai/analyze', profileData || {});
       setAiProfile(data);
       localStorage.setItem('talap_ai_profile', JSON.stringify(data));
+      // Refresh full portfolio after quiz completes to get new skills/interests
+      await fetchAIProfile();
       return data;
     } catch (err) {
       return { error: err.message, status: err.status };
@@ -129,14 +146,16 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     setAiProfile(null);
+    setPortfolio(null);
     localStorage.removeItem('token');
     localStorage.removeItem('talap_user');
     localStorage.removeItem('talap_ai_profile');
+    localStorage.removeItem('talap_portfolio');
     localStorage.removeItem('talap_tour_seen');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, analyzeProfile, updateUser, logout, loading, aiProfile, aiProfileLoaded, loginWithToken, fetchAIProfile }}>
+    <AuthContext.Provider value={{ user, login, register, analyzeProfile, updateUser, logout, loading, aiProfile, portfolio, aiProfileLoaded, loginWithToken, fetchAIProfile }}>
       {children}
     </AuthContext.Provider>
   );
