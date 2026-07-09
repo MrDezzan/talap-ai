@@ -37,6 +37,10 @@ export default function Dashboard() {
   const [spotlightRect, setSpotlightRect] = useState(null);
 
   const updateSpotlight = (stepIndex) => {
+    if (isMobile) {
+      setSpotlightRect(null);
+      return;
+    }
     const selectors = [
       null, // Step 0: Welcome centered
       '[data-tour="hero-mesh"]',
@@ -194,11 +198,11 @@ export default function Dashboard() {
               borderRadius: 16, 
               padding: isMobile ? 20 : 28, 
               minHeight: 200,
-              transform: (showTour && tourStep === 1) ? 'scale(1.035)' : 'none',
-              boxShadow: (showTour && tourStep === 1) ? '0 20px 40px rgba(20,72,255,0.25)' : 'none',
+              transform: (showTour && !isMobile && tourStep === 1) ? 'scale(1.035)' : 'none',
+              boxShadow: (showTour && !isMobile && tourStep === 1) ? '0 20px 40px rgba(20,72,255,0.25)' : 'none',
               transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms ease',
               position: 'relative',
-              zIndex: (showTour && tourStep === 1) ? 10002 : 'auto'
+              zIndex: (showTour && !isMobile && tourStep === 1) ? 10002 : 'auto'
             }}
           >
             <Chip dot tone="ai" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(10px)' }}>
@@ -244,10 +248,10 @@ export default function Dashboard() {
               display: 'grid', 
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
               gap: 16,
-              transform: (showTour && tourStep === 2) ? 'scale(1.035)' : 'none',
+              transform: (showTour && !isMobile && tourStep === 2) ? 'scale(1.035)' : 'none',
               transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative',
-              zIndex: (showTour && tourStep === 2) ? 10002 : 'auto'
+              zIndex: (showTour && !isMobile && tourStep === 2) ? 10002 : 'auto'
             }}
           >
             {stats.map((s, i) => (
