@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
 import Button from '../components/Button';
@@ -48,13 +48,13 @@ function Navbar() {
   return (
     <header style={{
       position: 'sticky', top: 0, zIndex: 100,
-      background: 'rgba(6,13,31,0.85)', backdropFilter: 'blur(20px)',
-      borderBottom: `1px solid rgba(0,212,255,0.12)`,
+      background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(20px)',
+      borderBottom: `1px solid ${C.hairline}`,
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '0 16px' : '0 40px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }}>
-          <span style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', color: '#FFFFFF' }}>
-            Talap<span style={{ color: '#00D4FF' }}>.</span>ai
+          <span style={{ fontFamily: C.font, fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', color: C.ink900 }}>
+            Talap<span style={{ color: C.blue }}>.</span>ai
           </span>
         </Link>
 
@@ -67,13 +67,13 @@ function Navbar() {
             ].map(item => (
               item.href.startsWith('/') ? (
                 <Link key={item.label} to={item.href} style={{
-                  fontFamily: C.font, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.7)',
+                  fontFamily: C.font, fontSize: 14, fontWeight: 500, color: C.ink700,
                   padding: '6px 12px', borderRadius: 6, textDecoration: 'none',
                   transition: 'color 150ms',
                 }}>{item.label}</Link>
               ) : (
                 <a key={item.label} href={item.href} style={{
-                  fontFamily: C.font, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.7)',
+                  fontFamily: C.font, fontSize: 14, fontWeight: 500, color: C.ink700,
                   padding: '6px 12px', borderRadius: 6, textDecoration: 'none',
                   transition: 'color 150ms',
                 }}>{item.label}</a>
@@ -87,7 +87,7 @@ function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!isMobile && (
               <Link to="/login">
-                <Button variant="ghost" size="sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{t('land_nav_login')}</Button>
+                <Button variant="ghost" size="sm" style={{ color: C.ink700 }}>{t('land_nav_login')}</Button>
               </Link>
             )}
             <Link to="/register">
@@ -104,312 +104,156 @@ function Hero() {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const isMobile = useMobile();
-  const [wordIndex, setWordIndex] = React.useState(0);
-  const [displayed, setDisplayed] = React.useState('');
-  const [deleting, setDeleting] = React.useState(false);
-  const [activeCard, setActiveCard] = React.useState(0);
 
-  const words = lang === 'kz'
-    ? ['БАҒДАРЛАМАШЫ', 'ДӘРІГЕР', 'БИЗНЕСМЕН', 'ДИЗАЙНЕР', 'AI-МАМАН']
-    : lang === 'en'
-    ? ['PROGRAMMER', 'DOCTOR', 'ENTREPRENEUR', 'DESIGNER', 'AI SPECIALIST']
-    : ['ПРОГРАММИСТА', 'ВРАЧА', 'БИЗНЕСМЕНА', 'ДИЗАЙНЕРА', 'AI-СПЕЦИАЛИСТА'];
+  const words = {
+    ru: ['Программистом?', 'Бизнесменом?', 'Врачом?', 'Дизайнером?', 'Инженером?', 'Маркетологом?'],
+    en: ['a Programmer?', 'a Businessman?', 'a Doctor?', 'a Designer?', 'an Engineer?', 'a Marketer?'],
+    kz: ['Бағдарламашы болуға?', 'Кәсіпкер болуға?', 'Дәрігер болуға?', 'Дизайнер болуға?', 'Инженер болуға?', 'Маркетолог болуға?']
+  };
 
-  React.useEffect(() => {
-    const word = words[wordIndex];
-    let timeout;
-    if (!deleting && displayed.length < word.length) {
-      timeout = setTimeout(() => setDisplayed(word.slice(0, displayed.length + 1)), 80);
-    } else if (!deleting && displayed.length === word.length) {
-      timeout = setTimeout(() => setDeleting(true), 1800);
-    } else if (deleting && displayed.length > 0) {
-      timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 45);
-    } else if (deleting && displayed.length === 0) {
-      setDeleting(false);
-      setWordIndex((wordIndex + 1) % words.length);
-    }
-    return () => clearTimeout(timeout);
-  }, [displayed, deleting, wordIndex, words]);
+  const wordList = words[lang] || words['ru'];
+  const [wordIndex, setWordIndex] = useState(0);
+  const [fade, setFade] = useState(true);
 
-  // Auto-rotate cards
-  React.useEffect(() => {
-    const t = setInterval(() => setActiveCard(p => (p + 1) % 3), 3200);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setWordIndex((prev) => (prev + 1) % wordList.length);
+        setFade(true);
+      }, 300); // fade out duration
+    }, 2500); // stay duration
+    return () => clearInterval(interval);
+  }, [wordList]);
 
-  const cards = [
-    {
-      label: lang === 'kz' ? 'БАҒДАРЛАМАШЫ' : lang === 'en' ? 'PROGRAMMER' : 'ПРОГРАММИСТ',
-      color: '#00D4FF',
-      glow: 'rgba(0,212,255,0.45)',
-      border: 'rgba(0,212,255,0.5)',
-      bg: 'rgba(0,212,255,0.07)',
-      icon: '💻',
-      timeline: lang === 'ru' ? ['Основы', 'Алгоритмы', 'Фреймворки', 'Оффер'] : ['Basics', 'Algorithms', 'Frameworks', 'Offer'],
-    },
-    {
-      label: lang === 'kz' ? 'ДӘРІГЕР' : lang === 'en' ? 'DOCTOR' : 'ВРАЧ',
-      color: '#00E5A0',
-      glow: 'rgba(0,229,160,0.4)',
-      border: 'rgba(0,229,160,0.5)',
-      bg: 'rgba(0,229,160,0.07)',
-      icon: '🩺',
-      timeline: lang === 'ru' ? ['Биология', 'Медвуз', 'Интернатура', 'Специализация'] : ['Biology', 'Medical', 'Internship', 'Speciality'],
-    },
-    {
-      label: lang === 'kz' ? 'БИЗНЕСМЕН' : lang === 'en' ? 'ENTREPRENEUR' : 'БИЗНЕСМЕН',
-      color: '#FF8C42',
-      glow: 'rgba(255,140,66,0.4)',
-      border: 'rgba(255,140,66,0.5)',
-      bg: 'rgba(255,140,66,0.07)',
-      icon: '📊',
-      timeline: lang === 'ru' ? ['Идея', 'MVP', 'Инвестиции', 'Масштаб'] : ['Idea', 'MVP', 'Investment', 'Scale'],
-    },
-  ];
+  const currentWord = wordList[wordIndex] || '';
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', background: '#060D1F' }}>
-      {/* Background image */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: 'url(/hero_bg.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center top',
-        opacity: 0.18,
-        zIndex: 0,
-      }} />
-      {/* Animated grid */}
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        backgroundImage: `
-          linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px)
-        `,
-        backgroundSize: '48px 48px',
-      }} />
-      {/* Top glow */}
-      <div style={{
-        position: 'absolute', top: -120, left: '50%', transform: 'translateX(-50%)',
-        width: 800, height: 400,
-        background: 'radial-gradient(ellipse, rgba(20,72,255,0.25) 0%, transparent 70%)',
-        zIndex: 0,
-      }} />
-
-      <style>{`
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        @keyframes cardFloat {
-          0%,100%{transform:translateY(0px)}
-          50%{transform:translateY(-10px)}
-        }
-        @keyframes glowPulse {
-          0%,100%{box-shadow:0 0 30px var(--glow-color), 0 0 60px var(--glow-color), inset 0 0 20px rgba(255,255,255,0.03)}
-          50%{box-shadow:0 0 50px var(--glow-color), 0 0 100px var(--glow-color), inset 0 0 30px rgba(255,255,255,0.06)}
-        }
-        @keyframes fadeUp {
-          from{opacity:0;transform:translateY(30px)}
-          to{opacity:1;transform:translateY(0)}
-        }
-        .hero-card { animation: cardFloat 4s ease-in-out infinite; }
-        .hero-card:nth-child(2) { animation-delay: -1.2s; }
-        .hero-card:nth-child(3) { animation-delay: -2.5s; }
-        .hero-cta:hover { transform: translateY(-3px) scale(1.02) !important; box-shadow: 0 0 40px rgba(20,72,255,0.6), 0 16px 40px rgba(20,72,255,0.4) !important; }
-        .hero-cta:active { transform: scale(0.98) !important; }
-      `}</style>
-
-      <section style={{
-        padding: isMobile ? '60px 16px 52px' : '90px 40px 80px',
-        maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1,
-        animation: 'fadeUp 0.7s ease forwards',
-      }}>
-        {/* Stars / badges */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)',
-            borderRadius: 24, padding: '6px 16px',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00D4FF', boxShadow: '0 0 8px #00D4FF', display: 'inline-block' }} />
-            <span style={{ fontFamily: C.font, fontSize: 12, fontWeight: 700, color: 'rgba(0,212,255,0.9)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              {lang === 'kz' ? 'AI-мансап жоспарлаушы' : lang === 'en' ? 'AI Career Planner' : 'AI Карьерный советник · Казахстан'}
-            </span>
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <section style={{ padding: isMobile ? '48px 16px' : '96px 40px 80px', maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 48 : 64, alignItems: 'center' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {[avatar1, avatar2, avatar3, avatar4].map((av, i) => (
+                  <div key={i} style={{ 
+                    width: isMobile ? 32 : 40, height: isMobile ? 32 : 40, borderRadius: 9999, border: '2px solid white', 
+                    marginLeft: i === 0 ? 0 : -12, overflow: 'hidden', background: '#F5F7FB',
+                    boxShadow: '0 4px 12px rgba(10,18,48,0.1)'
+                  }}>
+                    <img src={av} alt="user" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{ display: 'flex', gap: 2, marginBottom: 4 }}>
+                  {[...Array(5)].map((_, i) => <Icon key={i} name="star" size={12} color="#F2C572" style={{ fill: '#F2C572' }} />)}
+                </div>
+                <div style={{ fontFamily: C.font, fontSize: isMobile ? 11 : 13, fontWeight: 600, color: C.ink700 }}>
+                  {t('land_social_rating')}
+                </div>
+              </div>
+            </div>
+            <h1 style={{ 
+              fontFamily: C.font, 
+              fontSize: isMobile ? 38 : 58, 
+              lineHeight: isMobile ? '44px' : '66px', 
+              fontWeight: 800, 
+              letterSpacing: '-0.035em', 
+              color: C.ink900, 
+              margin: '0 0 24px',
+              minHeight: isMobile ? 88 : 132
+            }}>
+              {lang === 'ru' && 'Готов стать'}
+              {lang === 'en' && 'Ready to become'}
+              {lang === 'kz' && 'Дайынсың ба'}
+              <br />
+              <span style={{ 
+                color: C.blue,
+                opacity: fade ? 1 : 0,
+                transform: fade ? 'translateY(0)' : 'translateY(8px)',
+                display: 'inline-block',
+                transition: 'opacity 300ms ease, transform 300ms ease',
+              }}>
+                {currentWord}
+              </span>
+            </h1>
+            <p style={{ fontFamily: C.font, fontSize: isMobile ? 16 : 18, lineHeight: isMobile ? '24px' : '28px', color: C.ink700, margin: '0 0 40px', maxWidth: 480 }}>
+              {t('land_hero_desc')}
+            </p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Link to="/register" style={{ flex: isMobile ? 1 : 'initial' }}>
+                <Button variant="primary" size="lg" icon="arrowRight" fullWidth={isMobile}>{t('land_hero_btn_start')}</Button>
+              </Link>
+              <a href="#how" style={{ flex: isMobile ? 1 : 'initial' }}>
+                <Button variant="outline" size="lg" fullWidth={isMobile}>{t('land_hero_btn_how')}</Button>
+              </a>
+            </div>
+            <div style={{ display: 'flex', gap: isMobile ? 16 : 24, marginTop: 40 }}>
+              {[
+                { value: '50 000+', label: t('land_hero_stats_students') },
+                { value: '1 200+', label: t('land_hero_stats_grants') },
+                { value: '95%', label: t('land_hero_stats_success') },
+              ].map(s => (
+                <div key={s.label}>
+                  <div style={{ fontFamily: C.font, fontSize: isMobile ? 20 : 24, fontWeight: 800, letterSpacing: '-0.025em', color: C.ink900 }}>{s.value}</div>
+                  <div style={{ fontFamily: C.font, fontSize: isMobile ? 11 : 13, color: C.ink500, marginTop: 2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Headline */}
-        <h1 style={{
-          fontFamily: C.font,
-          fontSize: isMobile ? 32 : 58,
-          lineHeight: 1.1,
-          fontWeight: 900,
-          letterSpacing: '-0.03em',
-          color: '#FFFFFF',
-          textAlign: 'center',
-          margin: '0 0 20px',
-        }}>
-          {lang === 'kz' ? 'МАНСАПҚА' : lang === 'en' ? 'YOUR IDEAL PATH' : 'ТВОЙ ИДЕАЛЬНЫЙ ПУТЬ'}<br />
-          {lang === 'kz' ? 'НАҚТЫ ЖОЛ' : lang === 'en' ? 'TO CAREER OF' : 'К КАРЬЕРЕ'}{' '}
-          <span style={{ color: '#00D4FF', textShadow: '0 0 30px rgba(0,212,255,0.8)' }}>
-            [{displayed}
-            <span style={{ animation: 'blink 1s step-end infinite', color: '#00D4FF' }}>|</span>]
-          </span>
-        </h1>
-
-        {/* Sub-headline */}
-        <p style={{
-          fontFamily: C.font,
-          fontSize: isMobile ? 15 : 18,
-          lineHeight: 1.6,
-          color: 'rgba(255,255,255,0.6)',
-          textAlign: 'center',
-          margin: '0 auto 40px',
-          maxWidth: 560,
-        }}>
-          {lang === 'kz'
-            ? 'Мамандық таңдаудан бастап бірінші офферге дейін — дамудың қадамдық жоспарын ал.'
-            : lang === 'en'
-            ? 'From choosing a specialty to your first job offer — get a step-by-step development plan.'
-            : 'От выбора специальности до первого оффера — получи пошаговый план развития.'}
-        </p>
-
-        {/* CTA */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: isMobile ? 52 : 72 }}>
-          <button
-            className="hero-cta"
-            onClick={() => navigate('/register')}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 12,
-              padding: isMobile ? '16px 32px' : '18px 44px',
-              borderRadius: 14,
-              background: 'linear-gradient(135deg, #1448FF 0%, #0A30CC 100%)',
-              border: '1px solid rgba(0,212,255,0.4)',
-              fontFamily: C.font, fontSize: isMobile ? 15 : 17, fontWeight: 800,
-              color: '#FFFFFF', cursor: 'pointer', letterSpacing: '0.03em',
-              boxShadow: '0 0 24px rgba(20,72,255,0.4), 0 8px 24px rgba(20,72,255,0.3)',
-              transition: 'all 250ms cubic-bezier(0.34,1.56,0.64,1)',
-              textTransform: 'uppercase',
-            }}
-          >
-            <span>⚡</span>
-            {lang === 'kz' ? 'МЕНІҢ ЖОЛЫМДЫ БАСТАУ' : lang === 'en' ? 'START MY PATH' : 'НАЧАТЬ МОЙ ПУТЬ'}
-          </button>
-        </div>
-
-        {/* Glassmorphism career cards */}
-        <div style={{
-          display: 'flex', gap: isMobile ? 12 : 24,
-          justifyContent: 'center',
-          flexWrap: isMobile ? 'wrap' : 'nowrap',
-        }}>
-          {cards.map((card, i) => {
-            const isActive = activeCard === i;
-            return (
-              <div
-                key={i}
-                className="hero-card"
-                onClick={() => setActiveCard(i)}
-                style={{
-                  '--glow-color': card.glow,
-                  flex: isMobile ? '0 0 calc(50% - 6px)' : '0 0 220px',
-                  maxWidth: isMobile ? 180 : 220,
-                  borderRadius: 20,
-                  padding: '20px 16px 18px',
-                  background: isActive
-                    ? `linear-gradient(160deg, ${card.bg}, rgba(0,0,0,0.3))`
-                    : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${isActive ? card.border : 'rgba(255,255,255,0.08)'}`,
-                  backdropFilter: 'blur(16px)',
-                  cursor: 'pointer',
-                  transition: 'all 400ms cubic-bezier(0.34,1.2,0.64,1)',
-                  boxShadow: isActive
-                    ? `0 0 32px ${card.glow}, 0 0 64px ${card.glow}`
-                    : '0 4px 24px rgba(0,0,0,0.2)',
-                  transform: isActive ? 'translateY(-8px) scale(1.04)' : 'scale(1)',
-                  animation: `cardFloat ${3.8 + i * 0.4}s ease-in-out infinite`,
-                  animationDelay: `${-i * 1.2}s`,
-                }}
-              >
-                {/* Icon */}
-                <div style={{
-                  fontSize: 32, marginBottom: 12, textAlign: 'center',
-                  filter: isActive ? `drop-shadow(0 0 12px ${card.color})` : 'none',
-                  transition: 'filter 400ms',
-                }}>
-                  {card.icon}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              position: 'absolute', inset: -24, borderRadius: 32,
+              background: 'radial-gradient(60% 60% at 50% 50%, rgba(20,72,255,0.08), transparent)',
+            }} />
+            <div style={{
+              borderRadius: 20, padding: isMobile ? 20 : 24,
+              background: 'white',
+              boxShadow: '0 32px 80px rgba(10,18,48,0.14), 0 0 0 1px rgba(10,18,48,0.06)',
+              position: 'relative',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9999, background: 'white', boxShadow: '0 0 0 3px rgba(20,72,255,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="sparkles" size={16} color={C.blue} strokeWidth={2} />
                 </div>
-
-                {/* Label */}
-                <div style={{
-                  fontFamily: C.font, fontSize: 13, fontWeight: 800,
-                  color: isActive ? card.color : 'rgba(255,255,255,0.5)',
-                  textAlign: 'center', letterSpacing: '0.06em',
-                  marginBottom: 16, transition: 'color 300ms',
-                  textShadow: isActive ? `0 0 16px ${card.color}` : 'none',
-                }}>
-                  {card.label}
-                </div>
-
-                {/* Timeline dots */}
-                <div style={{ position: 'relative' }}>
-                  {/* Line */}
-                  <div style={{
-                    position: 'absolute', top: 6, left: 8, right: 8,
-                    height: 1, background: isActive
-                      ? `linear-gradient(90deg, transparent, ${card.color}, transparent)`
-                      : 'rgba(255,255,255,0.1)',
-                    transition: 'background 400ms',
-                  }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-                    {card.timeline.map((step, j) => (
-                      <div key={j} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
-                        <div style={{
-                          width: 12, height: 12, borderRadius: '50%',
-                          background: isActive ? card.color : 'rgba(255,255,255,0.15)',
-                          boxShadow: isActive ? `0 0 10px ${card.color}` : 'none',
-                          border: `2px solid ${isActive ? card.color : 'rgba(255,255,255,0.2)'}`,
-                          transition: 'all 400ms',
-                          transitionDelay: `${j * 60}ms`,
-                        }} />
-                        <span style={{
-                          fontFamily: C.font, fontSize: 8, fontWeight: 600,
-                          color: isActive ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.25)',
-                          textAlign: 'center', lineHeight: 1.2, transition: 'color 400ms',
-                          maxWidth: 40,
-                        }}>
-                          {step}
-                        </span>
-                      </div>
-                    ))}
+                <div>
+                  <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 700, color: C.ink900 }}>Talap</div>
+                  <div style={{ fontFamily: C.font, fontSize: 11, color: C.success700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#6FCF97' }} />
+                    {lang === 'en' ? 'Online' : lang === 'kz' ? 'Желіде' : 'На связи'}
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Stats row */}
-        <div style={{
-          display: 'flex', gap: isMobile ? 24 : 56, justifyContent: 'center',
-          marginTop: isMobile ? 44 : 64,
-          borderTop: '1px solid rgba(255,255,255,0.07)',
-          paddingTop: isMobile ? 32 : 44,
-          flexWrap: 'wrap',
-        }}>
-          {[
-            { value: '50 000+', label: lang === 'kz' ? 'белсенді оқушы' : lang === 'en' ? 'active students' : 'активных студентов' },
-            { value: '1 200+', label: lang === 'kz' ? 'грант базасы' : lang === 'en' ? 'grants in base' : 'грантов в базе' },
-            { value: '95%', label: lang === 'kz' ? 'сәтті нәтиже' : lang === 'en' ? 'success rate' : 'успешных результатов' },
-            { value: '13', label: lang === 'kz' ? 'мамандық' : lang === 'en' ? 'career paths' : 'специальностей' },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{
-                fontFamily: C.font, fontSize: isMobile ? 26 : 34, fontWeight: 900,
-                letterSpacing: '-0.03em',
-                background: 'linear-gradient(135deg, #FFFFFF 0%, rgba(0,212,255,0.9) 100%)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              }}>{s.value}</div>
-              <div style={{ fontFamily: C.font, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{s.label}</div>
+              <div style={{ background: 'rgba(255,255,255,0.9)', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                <div style={{ fontFamily: C.font, fontSize: 14, color: C.ink900, lineHeight: 1.5 }}>
+                  {lang === 'en' ? 'Based on your results (UNT 132, profile: math) I picked 3 directions:' : 
+                   lang === 'kz' ? 'Сенің нәтижелерің негізінде (ҰБТ 132, профиль: математика) 3 бағыт таңдадым:' :
+                   'На основе твоих результатов (ЕНТ 132, профиль: математика) подобрал 3 направления:'}
+                </div>
+                {[
+                  { name: 'Data-аналитик', m: 92 },
+                  { name: 'AI Engineer', m: 87 },
+                  { name: 'Product-менеджер', m: 74 },
+                ].map(p => (
+                  <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12, marginTop: 10 }}>
+                    <span style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.ink900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: isMobile ? 60 : 80, height: 4, background: C.mist2, borderRadius: 9999, overflow: 'hidden' }}>
+                        <div style={{ width: `${p.m}%`, height: '100%', background: C.blue, borderRadius: 9999 }} />
+                      </div>
+                      <span style={{ fontFamily: '"Geist Mono",monospace', fontSize: 11, fontWeight: 600, color: C.blue, width: 32 }}>{p.m}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <Chip onClick={() => navigate('/grants')}>{t('nav_grants')}</Chip>
+                <Chip onClick={() => navigate('/roadmap')}>{t('cat_modal_build_path')}</Chip>
+              </div>
             </div>
-          ))}
+          </div>
         </div>
       </section>
     </div>
