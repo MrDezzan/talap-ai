@@ -117,6 +117,7 @@ export default function Quiz() {
 
   const finish = async (finalAnswers) => {
     setFinishing(true);
+    localStorage.removeItem('talap_tour_seen');
     const answersText = QUESTIONS.map(q => `${q.title}: ${q.options.find(o => o.id === finalAnswers[q.id])?.label}`).join('; ');
     try {
       await analyzeProfile({ 

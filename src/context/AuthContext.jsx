@@ -123,6 +123,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     localStorage.removeItem('talap_user');
     localStorage.removeItem('talap_ai_profile');
+    localStorage.removeItem('talap_tour_seen');
   };
 
   return (
