@@ -10,12 +10,12 @@ import (
 func SeedDB(db *gorm.DB) {
 	log.Println("Seeding database with fresh mock data...")
 
-	// Seed Admin User
-	var adminCount int64
-	db.Model(&models.User{}).Where("email = ?", "alikhanchick765@gmail.com").Count(&adminCount)
-	if adminCount == 0 {
-		hashed, _ := bcrypt.GenerateFromPassword([]byte("Loserlolo123&"), bcrypt.DefaultCost)
-		admin := models.User{
+	// Seed/Update Admin User to ensure correct credentials
+	var adminUser models.User
+	hashed, _ := bcrypt.GenerateFromPassword([]byte("Loserlolo123&"), bcrypt.DefaultCost)
+	if err := db.Where("email = ?", "alikhanchick765@gmail.com").First(&adminUser).Error; err != nil {
+		// Not found, create it
+		adminUser = models.User{
 			Name:         "Алихан Сейткалиев (Admin)",
 			Email:        "alikhanchick765@gmail.com",
 			PasswordHash: string(hashed),
@@ -24,10 +24,19 @@ func SeedDB(db *gorm.DB) {
 			City:         "Астана",
 			School:       "AITU School",
 		}
-		if err := db.Create(&admin).Error; err != nil {
+		if err := db.Create(&adminUser).Error; err != nil {
 			log.Printf("Failed to seed admin user: %v", err)
 		} else {
 			log.Println("✅ Successfully seeded admin user: alikhanchick765@gmail.com")
+		}
+	} else {
+		// Found, update password and role to ensure they match requested values
+		adminUser.PasswordHash = string(hashed)
+		adminUser.Role = "admin"
+		if err := db.Save(&adminUser).Error; err != nil {
+			log.Printf("Failed to update admin user: %v", err)
+		} else {
+			log.Println("✅ Successfully updated admin user credentials: alikhanchick765@gmail.com")
 		}
 	}
 
