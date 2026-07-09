@@ -32,6 +32,7 @@ const ICONS = {
   heart:        <><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></>,
   book:         <><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></>,
   arrowLeft:    <><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></>,
+  monitor:      <><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></>,
 };
 
 export default function Icon({ name, size = 18, color = 'currentColor', strokeWidth = 1.75, style = {} }) {
