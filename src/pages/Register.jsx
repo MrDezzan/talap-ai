@@ -306,7 +306,9 @@ export default function Register() {
     const e = {};
     if (!form.name.trim()) e.name = t('auth_error_name') || 'Введи имя';
     if (!form.email) e.email = t('auth_error_email') || 'Введи email';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('auth_error_email_invalid') || 'Некорректный email';
+    else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.email)) {
+      e.email = t('auth_error_email_invalid') || 'Некорректный email';
+    }
     if (!form.password) e.password = t('auth_error_pass') || 'Придумай пароль';
     else if (form.password.length < 6) {
       e.password = lang === 'en' ? 'Password must be at least 6 characters' : 
@@ -370,11 +372,20 @@ export default function Register() {
         setAnalyzingName(form.name.split(' ')[0]);
         setStep(2);
       } catch (err) {
+        const errMsg = err.error || err.message || '';
+        const errMsgLower = errMsg.toLowerCase();
+        
         if (err.status === 409) {
           setStep(0);
-          setErrors({ email: err.error || err.message || (lang === 'en' ? 'Email already registered' : 'Этот email уже зарегистрирован') });
+          setErrors({ email: errMsg || (lang === 'en' ? 'Email already registered' : 'Этот email уже зарегистрирован') });
+        } else if (errMsgLower.includes('email') || errMsgLower.includes('format')) {
+          setStep(0);
+          setErrors({ email: lang === 'en' ? 'Invalid email format' : lang === 'kz' ? 'Электрондық пошта пішімі қате' : 'Некорректный формат email' });
+        } else if (errMsgLower.includes('password') || errMsgLower.includes('char')) {
+          setStep(0);
+          setErrors({ password: lang === 'en' ? 'Password must be at least 6 characters' : lang === 'kz' ? 'Құпия сөз кемінде 6 таңбадан тұруы керек' : 'Пароль должен быть не менее 6 символов' });
         } else {
-          setErrors({ grade: err.message || 'Ошибка регистрации. Попробуй снова.' });
+          setErrors({ grade: errMsg || 'Ошибка регистрации. Попробуй снова.' });
         }
         setLoading(false);
       } finally {
