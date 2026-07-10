@@ -896,8 +896,6 @@ func AIChat(db *gorm.DB) gin.HandlerFunc {
 - Имя: %s
 - Класс: %s
 - Город: %s
-- Анализ профиля: %s
-- Текущая профессия-цель: %s
 
 ПОЛНОЕ ПОРТФОЛИО ИЗ БАЗЫ:
 %s
@@ -1002,7 +1000,7 @@ func AIChat(db *gorm.DB) gin.HandlerFunc {
     "hobbies": "..."
   } или null
 }`, 
-		currentDate, input.UserInfo.Name, input.UserInfo.Grade, input.UserInfo.City, input.UserInfo.Summary, input.UserInfo.TopProf, portfolioStatus)
+		currentDate, input.UserInfo.Name, input.UserInfo.Grade, input.UserInfo.City, portfolioStatus)
 
 		msgs := []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
