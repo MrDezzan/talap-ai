@@ -153,7 +153,7 @@ export default function Sidebar() {
                 }}
               >
                 <Icon name="sparkles" size={16} color="#FFFFFF" />
-                {lang === 'ru' ? 'Консультация ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
+                {lang === 'ru' ? 'Профориентация ИИ' : lang === 'kz' ? 'ИИ Профориентациясы' : 'AI Guidance'}
               </button>
 
               {/* Navigation lists */}
@@ -326,7 +326,7 @@ export default function Sidebar() {
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(20,72,255,0.2)'; }}
         >
           <Icon name="sparkles" size={16} color="#FFFFFF" />
-          {lang === 'ru' ? 'Консультация ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
+          {lang === 'ru' ? 'Профориентация ИИ' : lang === 'kz' ? 'ИИ Профориентациясы' : 'AI Guidance'}
         </button>
       </div>
 

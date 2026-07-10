@@ -241,7 +241,7 @@ export default function Dashboard() {
                         navigate('/chat');
                       }}
                     >
-                      {lang === 'ru' ? 'Консультация с ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
+                      {lang === 'ru' ? 'Профориентация ИИ' : lang === 'kz' ? 'ИИ Профориентациясы' : 'AI Guidance'}
                     </Button>
                   </>
                 : <>
@@ -258,7 +258,7 @@ export default function Dashboard() {
                         navigate('/chat');
                       }}
                     >
-                      {lang === 'ru' ? 'Консультация с ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
+                      {lang === 'ru' ? 'Профориентация ИИ' : lang === 'kz' ? 'ИИ Профориентациясы' : 'AI Guidance'}
                     </Button>
                   </>
               }
