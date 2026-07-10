@@ -51,14 +51,15 @@ type RoadmapStep struct {
 }
 
 type Recommendation struct {
-	Name            string `json:"name"`
-	Description     string `json:"description"`
-	MatchPercentage int    `json:"match_percentage"`
-	Subtitle        string `json:"subtitle,omitempty"`
-	DeadlineDays    int    `json:"deadline_days,omitempty"`
-	Tone            string `json:"tone,omitempty"`
-	Country         string `json:"country,omitempty"`
-	Amount          string `json:"amount,omitempty"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description"`
+	MatchPercentage int      `json:"match_percentage"`
+	Subtitle        string   `json:"subtitle,omitempty"`
+	DeadlineDays    int      `json:"deadline_days,omitempty"`
+	Tone            string   `json:"tone,omitempty"`
+	Country         string   `json:"country,omitempty"`
+	Amount          string   `json:"amount,omitempty"`
+	Tags            []string `json:"tags,omitempty"`
 }
 
 type AnalysisResult struct {
@@ -271,8 +272,125 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var result AnalysisResult
+		success := false
 
-		switch category {
+		// Call AI for dynamic comprehensive analysis
+		client, err := openaiClient()
+		if err == nil {
+			// Fetch DB items to inject into prompt for matching
+			var dbProfs []models.Profession
+			db.Find(&dbProfs)
+			var profsList []string
+			for _, p := range dbProfs {
+				profsList = append(profsList, fmt.Sprintf("- %s (%s): %s", p.Name, p.Category, p.Description))
+			}
+			dbProfsStr := strings.Join(profsList, "\n")
+
+			var dbGrants []models.Grant
+			db.Find(&dbGrants)
+			var grantsList []string
+			for _, g := range dbGrants {
+				grantsList = append(grantsList, fmt.Sprintf("- %s: %s (Страна: %s, Покрытие: %s)", g.Name, g.Subtitle, g.Country, g.Amount))
+			}
+			dbGrantsStr := strings.Join(grantsList, "\n")
+
+			var user models.User
+			db.First(&user, uid)
+
+			systemPrompt := fmt.Sprintf(`Ты — экспертный ИИ-советник по профориентации Talap.
+Твоя задача — проанализировать ответы на тест и интересы пользователя, и выдать точные рекомендации по выбору профессии и подходящих грантов.
+ВАЖНО: Пользователь может интересоваться совершенно любой сферой (не только IT, но и медицина, гуманитарные науки, искусство, спорт, инженерия, экономика, медиа, педагогика, право и т.д.). Твои рекомендации должны быть разнообразными и полностью отражать склонности пользователя.
+
+В нашей базе данных есть следующие профессии. Постарайся выбрать наиболее подходящие из них (3 штуки):
+%%s
+
+В нашей базе данных есть следующие гранты. Постарайся выбрать наиболее подходящие из них (3 штуки):
+%%s
+
+Ответ ДОЛЖЕН быть строго на том же языке, на котором написаны интересы или ответы пользователя (если на русском — пиши на русском, если на казахском — на казахском, если на английском — на английском).
+
+Верни ответ СТРОГО в формате JSON:
+{
+  "top_profession": "Название главной рекомендуемой профессии (например, UX/UI Designer, Teacher, Financial Analyst, Software Engineer)",
+  "summary": "Краткое (2-3 предложения) вдохновляющее объяснение, почему пользователю подходит эта профессия на основе его ответов и интересов",
+  "roadmap": [
+    {
+      "step": "1",
+      "duration": "Срок (например, 1-2 месяца)",
+      "title": "Название этапа (короткое)",
+      "description": "Что конкретно нужно изучить (с перечислением книг, технологий, концепций или практических действий)"
+    }
+  ],
+  "professions": [
+    {
+      "name": "Название профессии из нашей базы (или близкой по смыслу)",
+      "description": "Краткое описание профессии",
+      "match_percentage": 95,
+      "tags": ["Тег1", "Тег2"]
+    }
+  ],
+  "grants": [
+    {
+      "name": "Название гранта из нашей базы (или близкого по смыслу)",
+      "description": "Почему он подходит пользователю",
+      "match_percentage": 90
+    }
+  ]
+}`, dbProfsStr, dbGrantsStr)
+
+			userContext := fmt.Sprintf(`
+Имя: %%s
+Город: %%s
+Интересы пользователя: %%v
+Ответы на тест: %%s
+`, user.Name, user.City, input.Interests, string(portfolio.QuizAnswers))
+
+			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+			defer cancel()
+
+			resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+				Model:    llmModel(),
+				Messages: []openai.ChatCompletionMessage{
+					{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
+					{Role: openai.ChatMessageRoleUser, Content: userContext},
+				},
+				ResponseFormat: &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject},
+			})
+
+			if err == nil {
+				raw := strings.TrimSpace(resp.Choices[0].Message.Content)
+				if err := json.Unmarshal([]byte(raw), &result); err == nil {
+					success = true
+				} else {
+					log.Printf("Failed to unmarshal AI response: %%v, raw: %%s", err, raw)
+				}
+			} else {
+				log.Printf("AI API call failed: %%v", err)
+			}
+		}
+
+		if !success {
+			// Fallback to static Go scoring logic
+			result = fallbackAnalysisResult(category, leisure, projectRole, environment, problemSolving)
+		}
+
+		db.FirstOrCreate(&portfolio, models.Portfolio{UserID: uid})
+		enrichGrants(db, result.Grants)
+		resJSON, _ := json.Marshal(result)
+		db.Model(&portfolio).Updates(models.Portfolio{
+			Interests:   portfolio.Interests,
+			QuizAnswers: portfolio.QuizAnswers,
+			AIResult:    resJSON,
+			UpdatedAt:   time.Now(),
+		})
+
+		c.JSON(http.StatusOK, result)
+	}
+}
+
+func fallbackAnalysisResult(category, leisure, projectRole, environment, problemSolving string) AnalysisResult {
+	var result AnalysisResult
+	switch category {
 		case "it":
 			if leisure == "gadgets" && projectRole == "builder" {
 				result = AnalysisResult{
@@ -574,30 +692,30 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 				}
 			}
 		}
-
-		db.FirstOrCreate(&portfolio, models.Portfolio{UserID: uid})
-		enrichGrants(result.Grants)
-		resJSON, _ := json.Marshal(result)
-		db.Model(&portfolio).Updates(models.Portfolio{
-			Interests:   portfolio.Interests,
-			QuizAnswers: portfolio.QuizAnswers,
-			AIResult:    resJSON,
-			UpdatedAt:   time.Now(),
-		})
-
-		c.JSON(http.StatusOK, result)
-	}
+	return result
 }
 
-func enrichGrants(grants []Recommendation) {
+func enrichGrants(db *gorm.DB, grants []Recommendation) {
 	for i, g := range grants {
+		// First try database
+		var dbGrant models.Grant
+		if err := db.Where("LOWER(name) = LOWER(?)", g.Name).First(&dbGrant).Error; err == nil {
+			grants[i].Subtitle = dbGrant.Subtitle
+			grants[i].DeadlineDays = dbGrant.DeadlineDays
+			grants[i].Tone = dbGrant.Tone
+			grants[i].Country = dbGrant.Country
+			grants[i].Amount = dbGrant.Amount
+			continue
+		}
+
+		// Fallback to static rules
 		switch g.Name {
 		case "AITU Talent Grant":
 			grants[i].Subtitle = "Астана, Astana IT University"
 			grants[i].DeadlineDays = 25
 			grants[i].Tone = "blue"
 			grants[i].Country = "Казахстан"
-			grants[i].Amount = "100% грант"
+			grants[i].Amount = "100%% грант"
 		case "Google STEP Internship":
 			grants[i].Subtitle = "Стажировка в Google"
 			grants[i].DeadlineDays = 45
@@ -609,37 +727,37 @@ func enrichGrants(grants []Recommendation) {
 			grants[i].DeadlineDays = 14
 			grants[i].Tone = "warn"
 			grants[i].Country = "Казахстан"
-			grants[i].Amount = "100% грант"
+			grants[i].Amount = "100%% грант"
 		case "Грант Назарбаев Университета (NU)":
 			grants[i].Subtitle = "Астана, NU"
 			grants[i].DeadlineDays = 30
 			grants[i].Tone = "blue"
 			grants[i].Country = "Казахстан"
-			grants[i].Amount = "100% грант"
+			grants[i].Amount = "100%% грант"
 		case "Болашак":
 			grants[i].Subtitle = "Обучение за рубежом"
 			grants[i].DeadlineDays = 60
 			grants[i].Tone = "blue"
 			grants[i].Country = "Весь мир"
-			grants[i].Amount = "100% оплата"
+			grants[i].Amount = "100%% оплата"
 		case "Turkiye Burslari":
 			grants[i].Subtitle = "Обучение в Турции"
 			grants[i].DeadlineDays = 12
 			grants[i].Tone = "warn"
 			grants[i].Country = "Турция"
-			grants[i].Amount = "100% грант + стипендия"
+			grants[i].Amount = "100%% грант + стипендия"
 		case "SDU Internal Grant":
 			grants[i].Subtitle = "Каскелен, СДУ"
 			grants[i].DeadlineDays = 8
 			grants[i].Tone = "warn"
 			grants[i].Country = "Казахстан"
-			grants[i].Amount = "до 100% скидка"
+			grants[i].Amount = "до 100%% скидка"
 		case "Chevening Scholarship":
 			grants[i].Subtitle = "Магистратура в Великобритании"
 			grants[i].DeadlineDays = 90
 			grants[i].Tone = "blue"
 			grants[i].Country = "Великобритания"
-			grants[i].Amount = "100% покрытие"
+			grants[i].Amount = "100%% покрытие"
 		case "DAAD Scholarship":
 			grants[i].Subtitle = "Обучение в Германии"
 			grants[i].DeadlineDays = 75
@@ -652,7 +770,7 @@ func enrichGrants(grants []Recommendation) {
 			grants[i].DeadlineDays = 30
 			grants[i].Tone = "blue"
 			grants[i].Country = "Казахстан"
-			grants[i].Amount = "100% грант"
+			grants[i].Amount = "100%% грант"
 		}
 	}
 }

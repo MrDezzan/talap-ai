@@ -307,7 +307,7 @@ export default function Dashboard() {
                       {t('dash_days_left')} {g.deadline_days} {t('days')}
                     </Chip>
                     <div style={{ display: isMobile ? 'none' : 'flex', justifyContent: 'flex-end' }}>
-                      <Button variant="outline" size="sm" onClick={() => navigate('/grants')}>{t('dash_open')}</Button>
+                      <Button variant="outline" size="sm" onClick={() => navigate('/grants?q=' + encodeURIComponent(g.name))}>{t('dash_open')}</Button>
                     </div>
                   </div>
                 ))}
@@ -322,7 +322,7 @@ export default function Dashboard() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
                 {aiProfile.professions.map((p, i) => (
-                  <Card key={i} padding={18} onClick={() => navigate('/professions')} style={{ cursor: 'pointer' }}>
+                  <Card key={i} padding={18} onClick={() => navigate('/professions?q=' + encodeURIComponent(p.name))} style={{ cursor: 'pointer' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 8, background: C.blue50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Icon name="briefcase" size={18} color={C.blue} />
