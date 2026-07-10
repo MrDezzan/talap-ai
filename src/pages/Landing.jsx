@@ -298,8 +298,10 @@ function Hero() {
               alt="Talap Platform Preview" 
               style={{ 
                 width: '100%', 
-                maxWidth: 500, 
+                maxWidth: 600, 
                 height: 'auto', 
+                transform: 'scale(1.2)',
+                transformOrigin: 'center right',
                 position: 'relative',
                 zIndex: 1
               }} 
