@@ -293,10 +293,6 @@ function Hero() {
           </div>
 
           <div style={{ position: 'relative' }}>
-            <div style={{
-              position: 'absolute', inset: -24, borderRadius: 32,
-              background: 'radial-gradient(60% 60% at 50% 50%, rgba(20,72,255,0.08), transparent)',
-            }} />
             <img 
               src={talapPreview} 
               alt="Talap Platform Preview" 
@@ -304,8 +300,6 @@ function Hero() {
                 width: '100%', 
                 maxWidth: 500, 
                 height: 'auto', 
-                borderRadius: 24,
-                boxShadow: '0 32px 80px rgba(10,18,48,0.14), 0 0 0 1px rgba(10,18,48,0.06)',
                 position: 'relative',
                 zIndex: 1
               }} 
