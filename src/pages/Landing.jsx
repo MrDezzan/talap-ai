@@ -296,135 +296,19 @@ function Hero() {
               position: 'absolute', inset: -24, borderRadius: 32,
               background: 'radial-gradient(60% 60% at 50% 50%, rgba(20,72,255,0.08), transparent)',
             }} />
-            <div style={{
-              borderRadius: 24, padding: isMobile ? 20 : 28,
-              background: 'white',
-              boxShadow: '0 32px 80px rgba(10,18,48,0.14), 0 0 0 1px rgba(10,18,48,0.06)',
-              position: 'relative',
-              transition: 'all 300ms ease',
-            }}>
-              {/* Card top bar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: C.blue50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="sparkles" size={18} color={C.blue} strokeWidth={2} />
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 800, color: C.ink900 }}>Talap AI</div>
-                  </div>
-                </div>
-
-                <div style={{
-                  padding: '4px 10px', borderRadius: 8, background: 'rgba(20,72,255,0.08)',
-                  fontFamily: C.font, fontSize: 11, fontWeight: 700, color: C.blue,
-                  transition: 'opacity 300ms ease', opacity: cardFade ? 1 : 0
-                }}>
-                  {activeCard.title[lang] || activeCard.title['ru']}
-                </div>
-              </div>
-
-              {/* Chat bubble area */}
-              <div style={{ 
-                background: C.mist, 
-                borderRadius: 16, 
-                padding: 16, 
-                marginBottom: 16, 
-                minHeight: 180,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'opacity 300ms ease, transform 300ms ease',
-                opacity: cardFade ? 1 : 0,
-                transform: cardFade ? 'translateY(0)' : 'translateY(4px)'
-              }}>
-                <div>
-                  <div style={{ 
-                    fontFamily: C.font, 
-                    fontSize: 13, 
-                    color: C.ink700, 
-                    lineHeight: 1.5,
-                    marginBottom: 14 
-                  }}>
-                    {activeCard.message[lang] || activeCard.message['ru']}
-                  </div>
-
-                  {activeCard.type === 'progress' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {activeCard.items.map(p => (
-                        <div key={p.name} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontFamily: C.font, fontSize: 12, fontWeight: 700, color: C.ink900, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {p.name}
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: isMobile ? 60 : 100, height: 6, background: C.mist2, borderRadius: 9999, overflow: 'hidden' }}>
-                              <div style={{ width: `${p.val}%`, height: '100%', background: C.blue, borderRadius: 9999 }} />
-                            </div>
-                            <span style={{ fontFamily: C.font, fontSize: 11, fontWeight: 800, color: C.blue, width: 32, textAlign: 'right' }}>
-                              {p.val}%
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {activeCard.type === 'steps' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {activeCard.items.map((step, idx) => (
-                        <div key={step.name} style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between', 
-                          padding: '8px 12px', 
-                          background: 'white', 
-                          borderRadius: 8,
-                          border: `1px solid ${C.hairline}`
-                        }}>
-                          <span style={{ fontFamily: C.font, fontSize: 12, fontWeight: 700, color: C.ink900 }}>
-                            {step.name}
-                          </span>
-                          <span style={{ fontFamily: C.font, fontSize: 10, fontWeight: 700, color: C.blue, background: C.blue50, padding: '2px 6px', borderRadius: 4 }}>
-                            {step.dur}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Simulation interaction chips */}
-              <div style={{ 
-                display: 'flex', 
-                gap: 8, 
-                flexWrap: 'wrap',
-                transition: 'opacity 300ms ease',
-                opacity: cardFade ? 1 : 0 
-              }}>
-                {(activeCard.chips[lang] || activeCard.chips['ru']).map((chipText, i) => (
-                  <div
-                    key={chipText}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: 10,
-                      background: i === 1 ? C.blue : '#FFFFFF',
-                      border: `1px solid ${i === 1 ? C.blue : C.hairline}`,
-                      color: i === 1 ? '#FFFFFF' : C.ink700,
-                      fontFamily: C.font,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      boxShadow: i === 1 ? '0 4px 12px rgba(20,72,255,0.15)' : 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                  >
-                    {chipText}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <img 
+              src="/Talap.webp" 
+              alt="Talap Platform Preview" 
+              style={{ 
+                width: '100%', 
+                maxWidth: 500, 
+                height: 'auto', 
+                borderRadius: 24,
+                boxShadow: '0 32px 80px rgba(10,18,48,0.14), 0 0 0 1px rgba(10,18,48,0.06)',
+                position: 'relative',
+                zIndex: 1
+              }} 
+            />
           </div>
         </div>
       </section>
