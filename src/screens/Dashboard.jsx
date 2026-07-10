@@ -231,13 +231,36 @@ export default function Dashboard() {
                     <Button variant="primary" style={{ background: 'white', color: C.blue }} onClick={() => navigate('/grants')}>
                       {t('dash_view_grants')}
                     </Button>
-                    <Button variant="ghost" icon="sparkles" style={{ color: 'white' }} onClick={() => navigate('/chat')}>
-                      {t('cat_modal_ask_ai')}
+                    <Button 
+                      variant="ghost" 
+                      icon="sparkles" 
+                      style={{ color: 'white', background: 'rgba(255,255,255,0.15)' }} 
+                      onClick={() => {
+                        const prompt = `Привет! Проведи со мной глубокую профессиональную профориентационную консультацию. Пожалуйста, задавай мне вопросы по одному, анализируй мои ответы, расспрашивай подробно про мои сильные стороны, увлечения, оценки ЕНТ и страхи. В конце консультации помоги мне выбрать точную специальность, составь подробнейший роадмап поступления и обучения, подбери подходящие гранты и помоги сформировать портфолио! Начинай!`;
+                        localStorage.setItem('talap_chat_prefill', prompt);
+                        navigate('/chat');
+                      }}
+                    >
+                      {lang === 'ru' ? 'Консультация с ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
                     </Button>
                   </>
-                : <Button variant="primary" style={{ background: 'white', color: C.blue }} onClick={() => navigate('/quiz')}>
-                    {t('cat_quiz_btn')}
-                  </Button>
+                : <>
+                    <Button variant="primary" style={{ background: 'white', color: C.blue }} onClick={() => navigate('/quiz')}>
+                      {t('cat_quiz_btn')}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      icon="sparkles" 
+                      style={{ color: 'white', background: 'rgba(255,255,255,0.15)' }} 
+                      onClick={() => {
+                        const prompt = `Привет! Проведи со мной глубокую профессиональную профориентационную консультацию. Пожалуйста, задавай мне вопросы по одному, анализируй мои ответы, расспрашивай подробно про мои сильные стороны, увлечения, оценки ЕНТ и страхи. В конце консультации помоги мне выбрать точную специальность, составь подробнейший роадмап поступления и обучения, подбери подходящие гранты и помоги сформировать портфолио! Начинай!`;
+                        localStorage.setItem('talap_chat_prefill', prompt);
+                        navigate('/chat');
+                      }}
+                    >
+                      {lang === 'ru' ? 'Консультация с ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
+                    </Button>
+                  </>
               }
             </div>
           </Mesh>

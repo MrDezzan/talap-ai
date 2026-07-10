@@ -135,6 +135,27 @@ export default function Sidebar() {
                 </div>
               </div>
 
+              {/* Consultation button on mobile */}
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  const prompt = `Привет! Проведи со мной глубокую профессиональную профориентационную консультацию. Пожалуйста, задавай мне вопросы по одному, анализируй мои ответы, расспрашивай подробно про мои сильные стороны, увлечения, оценки ЕНТ и страхи. В конце консультации помоги мне выбрать точную специальность, составь подробнейший роадмап поступления и обучения, подбери подходящие гранты и помоги сформировать портфолио! Начинай!`;
+                  localStorage.setItem('talap_chat_prefill', prompt);
+                  navigate('/chat');
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  padding: '12px 16px', borderRadius: 12,
+                  background: 'linear-gradient(135deg, #1448FF 0%, #3B6EFF 100%)', border: 'none', cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 800,
+                  color: '#FFFFFF', textAlign: 'center', width: '100%',
+                  boxShadow: '0 4px 12px rgba(20,72,255,0.2)'
+                }}
+              >
+                <Icon name="sparkles" size={16} color="#FFFFFF" />
+                {lang === 'ru' ? 'Консультация ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
+              </button>
+
               {/* Navigation lists */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {(() => {
@@ -275,6 +296,39 @@ export default function Sidebar() {
       </nav>
 
       <div style={{ flex: 1 }} />
+
+      <div style={{ padding: '0 8px', marginBottom: 8 }}>
+        <button
+          onClick={() => {
+            const prompt = `Привет! Проведи со мной глубокую профессиональную профориентационную консультацию. Пожалуйста, задавай мне вопросы по одному, анализируй мои ответы, расспрашивай подробно про мои сильные стороны, увлечения, оценки ЕНТ и страхи. В конце консультации помоги мне выбрать точную специальность, составь подробнейший роадмап поступления и обучения, подбери подходящие гранты и помоги сформировать портфолио! Начинай!`;
+            localStorage.setItem('talap_chat_prefill', prompt);
+            navigate('/chat');
+          }}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            padding: '12px 16px',
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, #1448FF 0%, #3B6EFF 100%)',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-sans)',
+            fontSize: 14,
+            fontWeight: 800,
+            color: '#FFFFFF',
+            boxShadow: '0 4px 12px rgba(20,72,255,0.2)',
+            transition: 'all 200ms'
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(20,72,255,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(20,72,255,0.2)'; }}
+        >
+          <Icon name="sparkles" size={16} color="#FFFFFF" />
+          {lang === 'ru' ? 'Консультация ИИ' : lang === 'kz' ? 'ИИ Консультациясы' : 'AI Consultation'}
+        </button>
+      </div>
 
       <div style={{ padding: '8px 16px', display: 'flex', gap: 4, marginBottom: 8 }}>
         {['ru', 'en', 'kz'].map(l => (
