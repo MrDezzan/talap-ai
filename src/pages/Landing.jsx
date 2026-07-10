@@ -9,6 +9,7 @@ import avatar1 from '../assets/avatar1.png';
 import avatar2 from '../assets/avatar2.png';
 import avatar3 from '../assets/avatar3.png';
 import avatar4 from '../assets/avatar4.png';
+import talapPreview from '../assets/Talap.webp';
 
 const C = {
   ink900: '#0A1230', ink700: '#2A3457', ink500: '#5A6485', ink300: '#9AA3BF',
@@ -297,7 +298,7 @@ function Hero() {
               background: 'radial-gradient(60% 60% at 50% 50%, rgba(20,72,255,0.08), transparent)',
             }} />
             <img 
-              src="/Talap.webp" 
+              src={talapPreview} 
               alt="Talap Platform Preview" 
               style={{ 
                 width: '100%', 
