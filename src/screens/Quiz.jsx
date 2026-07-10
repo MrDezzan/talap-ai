@@ -84,6 +84,56 @@ const QUESTIONS = [
       { id: 'manager', label: 'Лидер (организовать команду и сроки)', icon: 'award' },
       { id: 'researcher', label: 'Исследователь (собрать и проверить данные)', icon: 'compass' },
     ]
+  },
+  {
+    id: 'people_interaction',
+    title: 'Как ты хочешь взаимодействовать с людьми в работе?',
+    options: [
+      { id: 'help', label: 'Помогать, лечить или заботиться', icon: 'heart' },
+      { id: 'teach', label: 'Обучать, объяснять и делиться знаниями', icon: 'bookOpen' },
+      { id: 'negotiate', label: 'Убеждать, вести переговоры и продавать', icon: 'globe' },
+      { id: 'none', label: 'Минимум общения, фокус на задачах/коде', icon: 'monitor' },
+    ]
+  },
+  {
+    id: 'workspace_objects',
+    title: 'С чем тебе интереснее всего работать физически или виртуально?',
+    options: [
+      { id: 'code_data', label: 'Код, базы данных, цифры и графики', icon: 'compass' },
+      { id: 'materials', label: 'Чертежи, макеты, здания, механизмы', icon: 'target' },
+      { id: 'texts_law', label: 'Тексты, документы, законы и языки', icon: 'book' },
+      { id: 'media_art', label: 'Фото, видео, музыка, иллюстрации', icon: 'sparkles' },
+    ]
+  },
+  {
+    id: 'risk_tolerance',
+    title: 'Какое у тебя отношение к неопределенности и риску?',
+    options: [
+      { id: 'stable', label: 'Предпочитаю стабильность и четкие инструкции', icon: 'shield' },
+      { id: 'flexible', label: 'Люблю гибкость, готов к частым изменениям', icon: 'globe' },
+      { id: 'adventure', label: 'Ищу вызовы, готов рисковать ради больших результатов', icon: 'award' },
+      { id: 'scientific', label: 'Предпочитаю проверять гипотезы научным путем', icon: 'target' },
+    ]
+  },
+  {
+    id: 'nature_science',
+    title: 'Твое отношение к природе, биологии и экологии?',
+    options: [
+      { id: 'bio_tech', label: 'Интересно изучать живые организмы и медицину', icon: 'heart' },
+      { id: 'geo_eco', label: 'Интересна экология, геология, защита природы', icon: 'globe' },
+      { id: 'tech_only', label: 'Предпочитаю чисто техногенные/цифровые сферы', icon: 'monitor' },
+      { id: 'urban', label: 'Интересно проектирование городов и урбанистика', icon: 'home' },
+    ]
+  },
+  {
+    id: 'creativity_type',
+    title: 'В чем больше всего выражается твое творчество?',
+    options: [
+      { id: 'logic_art', label: 'В решении сложных логических ребусов и задач', icon: 'compass' },
+      { id: 'visual', label: 'В создании красивого визуального контента', icon: 'sparkles' },
+      { id: 'verbal', label: 'В написании текстов, сценариев или публичных выступлениях', icon: 'users' },
+      { id: 'business_ideas', label: 'В придумывании бизнес-идей и стартапов', icon: 'award' },
+    ]
   }
 ];
 
