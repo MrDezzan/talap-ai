@@ -192,8 +192,8 @@ export default function Quiz() {
             <Icon name="sparkles" size={48} color={C.blue} strokeWidth={2} />
           </div>
         </div>
-        <h2 style={{ fontFamily: C.font, fontSize: 28, fontWeight: 800, color: C.ink900, marginBottom: 12, letterSpacing: '-0.02em' }}>Анализируем твой потенциал</h2>
-        <p style={{ fontFamily: C.font, fontSize: 16, color: C.ink500, maxWidth: 400, lineHeight: 1.6 }}>Talap AI изучает твои ответы, чтобы подобрать идеальные профессии и гранты именно для тебя...</p>
+        <h2 style={{ fontFamily: C.font, fontSize: 28, fontWeight: 800, color: C.ink900, marginBottom: 12, letterSpacing: '-0.02em' }}>Создаем твой профиль</h2>
+        <p style={{ fontFamily: C.font, fontSize: 16, color: C.ink500, maxWidth: 400, lineHeight: 1.6 }}>Сохраняем твои интересы и ответы в портфолио. Теперь ИИ полностью готов к глубокой профориентации...</p>
         <style>{`
           @keyframes ping {
             75%, 100% { transform: scale(1.6); opacity: 0; }
