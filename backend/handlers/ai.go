@@ -838,9 +838,14 @@ func AIChat(db *gorm.DB) gin.HandlerFunc {
 			db.Where("id = ? AND user_id = ?", input.ThreadID, uid).First(&thread)
 		}
 		if thread.ID == 0 {
+			msgRunes := []rune(input.Message)
+			titleLen := 30
+			if len(msgRunes) < titleLen {
+				titleLen = len(msgRunes)
+			}
 			thread = models.ChatThread{
 				UserID:    uid,
-				Title:     input.Message[:min(30, len(input.Message))],
+				Title:     string(msgRunes[:titleLen]),
 				UpdatedAt: time.Now(),
 			}
 			db.Create(&thread)
