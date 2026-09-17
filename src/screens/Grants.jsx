@@ -297,6 +297,18 @@ export default function Grants() {
                     </div>
                   </div>
                 </div>
+                {(g.source_url || g.fetched_at) && (
+                  <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink300, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.hairline}`, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {g.source_url && (
+                      <span onClick={e => e.stopPropagation()}>
+                        {t('grant_source_label')}: <a href={g.source_url} target="_blank" rel="noreferrer" style={{ color: C.ink300 }}>{g.source_url}</a>
+                      </span>
+                    )}
+                    {g.fetched_at && (
+                      <span>{t('grant_updated_label')}: {new Date(g.fetched_at).toLocaleDateString(lang === 'kz' ? 'kk-KZ' : lang === 'en' ? 'en-US' : 'ru-RU')}</span>
+                    )}
+                  </div>
+                )}
               </Card>
             ))}
           </div>

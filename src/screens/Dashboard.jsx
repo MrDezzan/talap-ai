@@ -182,6 +182,19 @@ export default function Dashboard() {
         }
       />
 
+      {aiProfile?.is_fallback && (
+        <div style={{
+          margin: isMobile ? '16px 16px 0' : '24px 40px 0',
+          background: C.blue50, border: `1px solid ${C.blue100}`, borderRadius: 12,
+          padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10,
+        }}>
+          <Icon name="sparkles" size={16} color={C.blue} style={{ marginTop: 1, flexShrink: 0 }} />
+          <div style={{ fontFamily: C.font, fontSize: 13, color: C.ink700, lineHeight: 1.5 }}>
+            {aiProfile.fallback_note}
+          </div>
+        </div>
+      )}
+
       <div style={{ 
         padding: isMobile ? 16 : 40, 
         display: 'grid', 
@@ -363,6 +376,28 @@ export default function Dashboard() {
                   </Card>
                 ))}
               </div>
+            </div>
+          )}
+
+          {aiProfile?.breakdown?.length > 0 && (
+            <div>
+              <div style={{ fontFamily: C.font, fontSize: 16, fontWeight: 700, letterSpacing: '-0.015em', color: C.ink900, marginBottom: 14 }}>
+                {t('ai_breakdown_title')}
+              </div>
+              <Card style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {aiProfile.breakdown.map((b, i) => (
+                  <div key={i}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.ink900 }}>{b.criterion}</span>
+                      <span style={{ fontFamily: C.mono, fontSize: 13, fontWeight: 700, color: C.blue }}>{b.score}%</span>
+                    </div>
+                    <Progress value={b.score} height={5} />
+                    {b.note && (
+                      <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink500, marginTop: 6, lineHeight: 1.5 }}>{b.note}</div>
+                    )}
+                  </div>
+                ))}
+              </Card>
             </div>
           )}
         </div>

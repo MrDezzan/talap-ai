@@ -4,6 +4,7 @@ import Icon from '../components/Icon';
 import Card from '../components/Card';
 import Chip from '../components/Chip';
 import TopBar from '../components/TopBar';
+import AdminCrudSection from '../components/AdminCrudSection';
 import { api } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -193,6 +194,67 @@ export default function AdminDashboard() {
               </div>
             )}
         </Card>
+
+        {/* Row 1.6: Full grants catalog management (manual CRUD) */}
+        <AdminCrudSection
+          t={t}
+          lang={lang}
+          title={t('admin_manage_grants')}
+          addLabel={t('admin_add_grant')}
+          listPath="/grants"
+          adminBasePath="/admin/grants"
+          fields={[
+            { key: 'name', label: t('admin_field_name'), type: 'text' },
+            { key: 'subtitle', label: t('grants_about') || 'Subtitle', type: 'text' },
+            { key: 'country', label: t('admin_field_country'), type: 'text' },
+            { key: 'amount', label: t('admin_field_amount'), type: 'text' },
+            { key: 'description', label: t('admin_field_description'), type: 'textarea' },
+            { key: 'requirements', label: 'Требования', type: 'textarea' },
+            { key: 'link', label: t('admin_field_link'), type: 'text' },
+            { key: 'tags', label: t('admin_field_tags'), type: 'tags' },
+            { key: 'match_percentage', label: 'Match %', type: 'number' },
+            { key: 'deadline_days', label: t('grants_deadline'), type: 'number' },
+            { key: 'tone', label: 'Tone', type: 'text', placeholder: 'warn / default' },
+          ]}
+          renderRowMeta={(g) => (
+            <>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                {g.country && <Chip tone="default" style={{ fontSize: 10 }}>{g.country}</Chip>}
+              </div>
+              {g.subtitle && <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink500 }}>{g.subtitle}</div>}
+            </>
+          )}
+        />
+
+        {/* Row 1.7: Full professions catalog management (manual CRUD) */}
+        <AdminCrudSection
+          t={t}
+          lang={lang}
+          title={t('admin_manage_professions')}
+          addLabel={t('admin_add_profession')}
+          listPath="/professions"
+          adminBasePath="/admin/professions"
+          fields={[
+            { key: 'name', label: t('admin_field_name'), type: 'text' },
+            { key: 'description', label: t('admin_field_description'), type: 'textarea' },
+            { key: 'category', label: t('admin_field_category'), type: 'text' },
+            { key: 'tags', label: t('admin_field_tags'), type: 'tags' },
+            { key: 'salary', label: t('admin_field_salary'), type: 'text' },
+            { key: 'growth', label: 'Growth', type: 'text' },
+            { key: 'match_percentage', label: 'Match %', type: 'number' },
+            { key: 'hot', label: t('admin_field_hot'), type: 'checkbox' },
+          ]}
+          renderRowMeta={(p) => (
+            <>
+              {p.category && <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink500, marginBottom: 4 }}>{p.category}</div>}
+              {p.description && (
+                <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink700, lineHeight: 1.5, maxWidth: 640 }}>
+                  {p.description.length > 180 ? `${p.description.slice(0, 180)}…` : p.description}
+                </div>
+              )}
+            </>
+          )}
+        />
 
         {/* Row 2: Breakdown distributions */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
