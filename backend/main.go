@@ -12,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"talkd-backend/config"
 	"talkd-backend/handlers"
+	"talkd-backend/importer"
 	"talkd-backend/middleware"
 	"talkd-backend/models"
 )
@@ -27,6 +28,11 @@ func main() {
 		log.Printf("AutoMigrate error: %v", err)
 	}
 	config.SeedDB(db)
+
+	// Must start after AutoMigrate/SeedDB so the Grant table (and its
+	// status/source_url/fetched_at columns) definitely exists before the
+	// importer's first immediate run tries to query/insert into it.
+	importer.StartScheduled(db, 6*time.Hour)
 
 	r := gin.Default()
 
@@ -49,8 +55,8 @@ func main() {
 
 	api := r.Group("/api")
 	{
-		api.POST("/register", handlers.Register(db))
-		api.POST("/login", handlers.Login(db))
+		api.POST("/register", middleware.RateLimit(5, 5), handlers.Register(db))
+		api.POST("/login", middleware.RateLimit(5, 5), handlers.Login(db))
 		api.GET("/auth/google/login", handlers.GoogleLogin)
 		api.GET("/auth/google/callback", handlers.GoogleCallback(db))
 
@@ -66,12 +72,26 @@ func main() {
 			auth.GET("/dashboard", handlers.GetDashboardData(db))
 			auth.GET("/portfolio", handlers.GetPortfolio(db))
 			auth.PUT("/portfolio", handlers.UpdatePortfolio(db))
-			auth.POST("/ai/analyze", handlers.AnalyzeProfile(db))
-			auth.POST("/ai/chat", handlers.AIChat(db))
+			auth.POST("/ai/analyze", middleware.RateLimit(12, 4), handlers.AnalyzeProfile(db))
+			auth.POST("/ai/chat", middleware.RateLimit(12, 4), handlers.AIChat(db))
 			auth.PUT("/portfolio/roadmap", handlers.UpdatePortfolioRoadmap(db))
 			auth.GET("/chats", handlers.GetChatThreads(db))
 			auth.GET("/chats/:id/messages", handlers.GetChatMessages(db))
-			auth.GET("/admin/stats", handlers.GetAdminStats(db))
+
+			admin := auth.Group("/admin")
+			admin.Use(middleware.AdminRequired(db))
+			{
+				admin.GET("/stats", handlers.GetAdminStats(db))
+				admin.POST("/grants", handlers.CreateGrant(db))
+				admin.PUT("/grants/:id", handlers.UpdateGrant(db))
+				admin.DELETE("/grants/:id", handlers.DeleteGrant(db))
+				admin.GET("/grants/pending", handlers.GetPendingGrants(db))
+				admin.POST("/grants/:id/approve", handlers.ApproveGrant(db))
+				admin.POST("/grants/:id/reject", handlers.RejectGrant(db))
+				admin.POST("/professions", handlers.CreateProfession(db))
+				admin.PUT("/professions/:id", handlers.UpdateProfession(db))
+				admin.DELETE("/professions/:id", handlers.DeleteProfession(db))
+			}
 		}
 	}
 

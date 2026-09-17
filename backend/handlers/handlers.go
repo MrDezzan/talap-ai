@@ -141,7 +141,11 @@ func GetDashboardData(db *gorm.DB) gin.HandlerFunc {
 
 		if len(cached) == 0 {
 			var dbGrants []models.Grant
-			db.Find(&dbGrants)
+			// Only ever populate the shared public cache with published grants —
+			// this cache is also read directly by GetGrants, so an unfiltered
+			// query here would leak pending_review (unmoderated, auto-imported)
+			// grants to end users if this handler happens to run first.
+			db.Where("status = ? OR status = ?", "published", "").Find(&dbGrants)
 			grantsCacheMutex.Lock()
 			grantsCache = dbGrants
 			cached = dbGrants
@@ -166,6 +170,8 @@ func GetDashboardData(db *gorm.DB) gin.HandlerFunc {
 func GetGrants(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		q := strings.TrimSpace(strings.ToLower(c.Query("q")))
+		country := strings.TrimSpace(c.Query("country"))
+		tagsParam := strings.TrimSpace(c.Query("tags"))
 
 		grantsCacheMutex.RLock()
 		cached := grantsCache
@@ -173,50 +179,103 @@ func GetGrants(db *gorm.DB) gin.HandlerFunc {
 
 		if len(cached) == 0 {
 			var dbGrants []models.Grant
-			db.Find(&dbGrants)
+			db.Where("status = ? OR status = ?", "published", "").Find(&dbGrants)
 			grantsCacheMutex.Lock()
 			grantsCache = dbGrants
 			cached = dbGrants
 			grantsCacheMutex.Unlock()
 		}
 
-		if q == "" {
+		if q == "" && country == "" && tagsParam == "" {
 			c.JSON(http.StatusOK, cached)
 			return
 		}
 
-		var filtered []models.Grant
-		for _, g := range cached {
-			name := strings.ToLower(g.Name)
-			sub := strings.ToLower(g.Subtitle)
-			desc := strings.ToLower(g.Description)
-			country := strings.ToLower(g.Country)
+		result := cached
 
-			match := strings.Contains(name, q) || 
-				strings.Contains(sub, q) || 
-				strings.Contains(desc, q) || 
-				strings.Contains(country, q)
+		if q != "" {
+			var filtered []models.Grant
+			for _, g := range result {
+				name := strings.ToLower(g.Name)
+				sub := strings.ToLower(g.Subtitle)
+				desc := strings.ToLower(g.Description)
+				gCountry := strings.ToLower(g.Country)
 
-			if !match {
+				match := strings.Contains(name, q) ||
+					strings.Contains(sub, q) ||
+					strings.Contains(desc, q) ||
+					strings.Contains(gCountry, q)
+
+				if !match {
+					for _, tag := range g.Tags {
+						if strings.Contains(strings.ToLower(tag), q) {
+							match = true
+							break
+						}
+					}
+				}
+
+				if match {
+					filtered = append(filtered, g)
+				}
+			}
+			result = filtered
+		}
+
+		if country != "" {
+			var filtered []models.Grant
+			for _, g := range result {
+				if strings.EqualFold(g.Country, country) {
+					filtered = append(filtered, g)
+				}
+			}
+			result = filtered
+		}
+
+		if tagsParam != "" {
+			wantedTags := strings.Split(tagsParam, ",")
+			for i := range wantedTags {
+				wantedTags[i] = strings.TrimSpace(wantedTags[i])
+			}
+			var filtered []models.Grant
+			for _, g := range result {
+				matched := false
 				for _, tag := range g.Tags {
-					if strings.Contains(strings.ToLower(tag), q) {
-						match = true
+					for _, want := range wantedTags {
+						if want != "" && strings.EqualFold(tag, want) {
+							matched = true
+							break
+						}
+					}
+					if matched {
 						break
 					}
 				}
+				if matched {
+					filtered = append(filtered, g)
+				}
 			}
-
-			if match {
-				filtered = append(filtered, g)
-			}
+			result = filtered
 		}
-		c.JSON(http.StatusOK, filtered)
+
+		c.JSON(http.StatusOK, result)
 	}
+}
+
+// InvalidateGrantsCache clears the in-memory grants cache so the next
+// GetGrants call re-reads fresh data from the database. Call this after
+// any create/update/delete of a Grant row.
+func InvalidateGrantsCache() {
+	grantsCacheMutex.Lock()
+	defer grantsCacheMutex.Unlock()
+	grantsCache = nil
 }
 
 func GetProfessions(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		q := strings.TrimSpace(strings.ToLower(c.Query("q")))
+		category := strings.TrimSpace(c.Query("category"))
+		tagsParam := strings.TrimSpace(c.Query("tags"))
 
 		professionsCacheMutex.RLock()
 		cached := professionsCache
@@ -231,36 +290,87 @@ func GetProfessions(db *gorm.DB) gin.HandlerFunc {
 			professionsCacheMutex.Unlock()
 		}
 
-		if q == "" {
+		if q == "" && category == "" && tagsParam == "" {
 			c.JSON(http.StatusOK, cached)
 			return
 		}
 
-		var filtered []models.Profession
-		for _, p := range cached {
-			name := strings.ToLower(p.Name)
-			desc := strings.ToLower(p.Description)
-			cat := strings.ToLower(p.Category)
+		result := cached
 
-			match := strings.Contains(name, q) || 
-				strings.Contains(desc, q) || 
-				strings.Contains(cat, q)
+		if q != "" {
+			var filtered []models.Profession
+			for _, p := range result {
+				name := strings.ToLower(p.Name)
+				desc := strings.ToLower(p.Description)
+				cat := strings.ToLower(p.Category)
 
-			if !match {
+				match := strings.Contains(name, q) ||
+					strings.Contains(desc, q) ||
+					strings.Contains(cat, q)
+
+				if !match {
+					for _, tag := range p.Tags {
+						if strings.Contains(strings.ToLower(tag), q) {
+							match = true
+							break
+						}
+					}
+				}
+
+				if match {
+					filtered = append(filtered, p)
+				}
+			}
+			result = filtered
+		}
+
+		if category != "" {
+			var filtered []models.Profession
+			for _, p := range result {
+				if strings.EqualFold(p.Category, category) {
+					filtered = append(filtered, p)
+				}
+			}
+			result = filtered
+		}
+
+		if tagsParam != "" {
+			wantedTags := strings.Split(tagsParam, ",")
+			for i := range wantedTags {
+				wantedTags[i] = strings.TrimSpace(wantedTags[i])
+			}
+			var filtered []models.Profession
+			for _, p := range result {
+				matched := false
 				for _, tag := range p.Tags {
-					if strings.Contains(strings.ToLower(tag), q) {
-						match = true
+					for _, want := range wantedTags {
+						if want != "" && strings.EqualFold(tag, want) {
+							matched = true
+							break
+						}
+					}
+					if matched {
 						break
 					}
 				}
+				if matched {
+					filtered = append(filtered, p)
+				}
 			}
-
-			if match {
-				filtered = append(filtered, p)
-			}
+			result = filtered
 		}
-		c.JSON(http.StatusOK, filtered)
+
+		c.JSON(http.StatusOK, result)
 	}
+}
+
+// InvalidateProfessionsCache clears the in-memory professions cache so the
+// next GetProfessions call re-reads fresh data from the database. Call this
+// after any create/update/delete of a Profession row.
+func InvalidateProfessionsCache() {
+	professionsCacheMutex.Lock()
+	defer professionsCacheMutex.Unlock()
+	professionsCache = nil
 }
 
 func GlobalSearch(db *gorm.DB) gin.HandlerFunc {

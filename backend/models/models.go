@@ -31,6 +31,9 @@ type Grant struct {
 	Documents       string   `json:"documents"`
 	Link            string   `json:"link"`
 	Tags            []string `gorm:"serializer:json;type:text" json:"tags"`
+	Status          string     `gorm:"default:'published'" json:"status"`
+	SourceURL       string     `json:"source_url,omitempty"`
+	FetchedAt       *time.Time `json:"fetched_at,omitempty"`
 }
 
 type Profession struct {
