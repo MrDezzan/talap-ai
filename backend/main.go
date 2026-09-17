@@ -50,8 +50,15 @@ func main() {
 		corsConfig.AllowOrigins = strings.Split(allowedOrigin, ",")
 	}
 
-	r.Use(gin.Logger())
+	// gin.Default() below already installs Logger + Recovery middleware,
+	// so we only need to add CORS on top of it.
 	r.Use(cors.New(corsConfig))
+
+	// Lightweight healthcheck for Railway/load balancers — no DB round trip
+	// needed, just confirms the process is up and serving.
+	r.GET("/api/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	api := r.Group("/api")
 	{
