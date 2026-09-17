@@ -62,6 +62,12 @@ type Recommendation struct {
 	Tags            []string `json:"tags,omitempty"`
 }
 
+type CriteriaScore struct {
+	Criterion string `json:"criterion"`
+	Score     int    `json:"score"`
+	Note      string `json:"note"`
+}
+
 type AnalysisResult struct {
 	TopProf         string           `json:"top_profession"`
 	TopProfCategory string           `json:"top_profession_category"`
@@ -69,6 +75,274 @@ type AnalysisResult struct {
 	Roadmap         []RoadmapStep    `json:"roadmap"`
 	Professions     []Recommendation `json:"professions"`
 	Grants          []Recommendation `json:"grants"`
+	IsFallback      bool             `json:"is_fallback"`
+	FallbackNote    string           `json:"fallback_note,omitempty"`
+	Breakdown       []CriteriaScore  `json:"breakdown"`
+}
+
+// categoryDisplayNames maps the internal scoring-category key to the
+// real "category" value stored on models.Profession rows, so the LLM
+// path and the fallback path both ground their output in real DB
+// records instead of inventing names.
+var categoryDisplayNames = map[string]string{
+	"it":             "IT и данные",
+	"design":         "Дизайн",
+	"business":       "Бизнес",
+	"medicine":       "Медицина",
+	"engineering":    "Инженерия",
+	"agriculture":    "Сельское хозяйство и ветеринария",
+	"trades":         "Рабочие и технические специальности",
+	"law":            "Право",
+	"humanities":     "Гуманитарные науки и социальная работа",
+	"education":      "Педагогика",
+	"public_service": "Государственная служба и правопорядок",
+	"sports":         "Спорт",
+	"arts":           "Творческие профессии вне цифры",
+	"transport":      "Транспорт и логистика",
+	"construction":   "Строительство",
+	"tourism":        "Туризм и гостиничное дело",
+}
+
+// categoryGrantKeywords maps the internal category key to a keyword that
+// tends to appear in a real models.Grant's Tags for that field. models.Grant
+// has no dedicated Category column, so this is a best-effort match against
+// its serialized Tags text used to ground grant names without inventing them.
+var categoryGrantKeywords = map[string]string{
+	"it":             "IT",
+	"design":         "Дизайн",
+	"business":       "Бизнес",
+	"medicine":       "Медицина",
+	"engineering":    "Инженерия",
+	"agriculture":    "Сельское хозяйство",
+	"trades":         "Рабоч",
+	"law":            "Юриспруденция",
+	"humanities":     "Языки",
+	"education":      "Педагогика",
+	"public_service": "Госслужба",
+	"sports":         "Спорт",
+	"arts":           "Творчество",
+	"transport":      "Транспорт",
+	"construction":   "Строительство",
+	"tourism":        "Туризм",
+}
+
+// fetchGroundingRecords pulls a handful of real professions and grants for
+// the given category, so LLM prompts and fallback roadmap text can be
+// grounded in real names instead of inventing them.
+func fetchGroundingRecords(db *gorm.DB, category, realCategoryName string) ([]models.Profession, []models.Grant) {
+	var professions []models.Profession
+	var grants []models.Grant
+	if db == nil {
+		return professions, grants
+	}
+	if realCategoryName != "" {
+		db.Where("category = ?", realCategoryName).Order("hot DESC, match_percentage DESC").Limit(5).Find(&professions)
+	}
+	if kw, ok := categoryGrantKeywords[category]; ok && kw != "" {
+		db.Where("tags LIKE ?", "%"+kw+"%").Order("match_percentage DESC").Limit(5).Find(&grants)
+	}
+	if len(grants) == 0 {
+		db.Order("match_percentage DESC").Limit(5).Find(&grants)
+	}
+	return professions, grants
+}
+
+func orDash(s string) string {
+	if s == "" {
+		return "не указано"
+	}
+	return s
+}
+
+// tryLLMAnalysis is the primary analysis path: it asks the LLM to produce a
+// full AnalysisResult grounded in the user's quiz answers, the local
+// rule-based scoring hint, and real profession/grant names pulled from the
+// DB for the top-scoring category. Returns an error whenever the LLM is
+// unavailable, times out, or returns something that doesn't parse into a
+// usable AnalysisResult, so the caller can fall back to local rules.
+func tryLLMAnalysis(db *gorm.DB, answers map[string]any, category, realCategoryName string, scores map[string]int) (*AnalysisResult, error) {
+	client, err := openaiClient()
+	if err != nil {
+		return nil, err
+	}
+
+	professions, grants := fetchGroundingRecords(db, category, realCategoryName)
+
+	var profLines strings.Builder
+	for _, p := range professions {
+		profLines.WriteString(fmt.Sprintf("- %s (категория: %s): %s\n", p.Name, p.Category, p.Description))
+	}
+	if profLines.Len() == 0 {
+		profLines.WriteString("(нет точных совпадений в базе, придумай реалистичное, но не гарантированное название специальности)\n")
+	}
+
+	var grantLines strings.Builder
+	for _, g := range grants {
+		grantLines.WriteString(fmt.Sprintf("- %s (%s, %s): %s\n", g.Name, g.Country, g.Amount, g.Description))
+	}
+	if grantLines.Len() == 0 {
+		grantLines.WriteString("(нет точных совпадений в базе)\n")
+	}
+
+	answersJSON, _ := json.Marshal(answers)
+	scoresJSON, _ := json.Marshal(scores)
+
+	prompt := fmt.Sprintf(`Ты — экспертный ИИ-профориентолог платформы Talap для школьников Казахстана.
+Проведи честный и подробный анализ профиля ученика на основе его ответов на анкету из 12 вопросов.
+
+ОТВЕТЫ УЧЕНИКА НА АНКЕТУ (JSON):
+%s
+
+ПОДСКАЗКА — локальный скоринг категорий по правилам (не единственный источник истины, используй его как ориентир, но опирайся в первую очередь на сами ответы):
+%s
+Категория-лидер по правилам: %s (%s)
+
+РЕАЛЬНЫЕ ПРОФЕССИИ ИЗ БАЗЫ ДАННЫХ ДЛЯ ЭТОЙ КАТЕГОРИИ (используй ТОЛЬКО эти имена в top_profession и professions, не выдумывай другие названия, если они есть в списке):
+%s
+
+РЕАЛЬНЫЕ ГРАНТЫ ИЗ БАЗЫ ДАННЫХ (используй ТОЛЬКО эти имена в grants и в roadmap при упоминании грантов/вузов, если они подходят; если ни один не подходит, используй общую формулировку без выдуманных названий):
+%s
+
+ТРЕБОВАНИЯ:
+1. Верни развернутый анализ, честно объясняющий, почему выбрана именно эта профессия/направление, ссылаясь на конкретные ответы ученика.
+2. Roadmap — 5-7 конкретных шагов от подготовки до трудоустройства. Если упоминаешь вуз, колледж или грант — используй только реальные названия из списков выше.
+3. В поле "breakdown" верни ровно 4 критерия, каждый с полями criterion, score (0-100) и note (одно предложение, почему такой балл, со ссылкой на конкретные ответы):
+   - "Интересы и склонности"
+   - "Формат работы (люди/данные/руки)"
+   - "Отношение к риску и стабильности"
+   - "Творческий vs аналитический склад"
+4. Не выставляй "is_fallback" и "fallback_note" — они не нужны в этом ответе (оставь false/пусто).
+
+ОТВЕЧАЙ СТРОГО В JSON СО СЛЕДУЮЩЕЙ СТРУКТУРОЙ (без markdown, без пояснений вне JSON):
+{
+  "top_profession": "...",
+  "top_profession_category": "...",
+  "summary": "...",
+  "roadmap": [{"step": "1", "duration": "...", "title": "...", "description": "..."}],
+  "professions": [{"name": "...", "description": "...", "match_percentage": 90}],
+  "grants": [{"name": "...", "description": "...", "match_percentage": 90}],
+  "breakdown": [{"criterion": "...", "score": 80, "note": "..."}]
+}`, string(answersJSON), string(scoresJSON), category, realCategoryName, profLines.String(), grantLines.String())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	defer cancel()
+
+	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: llmModel(),
+		Messages: []openai.ChatCompletionMessage{
+			{Role: openai.ChatMessageRoleSystem, Content: prompt},
+		},
+		ResponseFormat: &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("llm request failed: %w", err)
+	}
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("llm returned no choices")
+	}
+
+	raw := strings.TrimSpace(resp.Choices[0].Message.Content)
+	raw = strings.TrimPrefix(raw, "```json")
+	raw = strings.TrimPrefix(raw, "```")
+	raw = strings.TrimSuffix(raw, "```")
+	raw = strings.TrimSpace(raw)
+
+	var result AnalysisResult
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		return nil, fmt.Errorf("invalid LLM JSON: %w", err)
+	}
+	if strings.TrimSpace(result.TopProf) == "" || len(result.Professions) == 0 {
+		return nil, fmt.Errorf("incomplete LLM result")
+	}
+
+	result.IsFallback = false
+	result.FallbackNote = ""
+	return &result, nil
+}
+
+// computeFallbackBreakdown deterministically derives the 4 criteria scores
+// from the same answer signals already used for rule-based scoring, so the
+// fallback path stays explainable instead of showing a single opaque
+// percentage.
+func computeFallbackBreakdown(scores map[string]int, category string, subject, workType, environment, goal, problemSolving, leisure, projectRole, peopleInteraction, workspaceObjects, riskTolerance, natureScience, creativityType string) []CriteriaScore {
+	total := 0
+	for _, v := range scores {
+		if v > 0 {
+			total += v
+		}
+	}
+	maxScore := scores[category]
+	dominance := 50
+	if total > 0 {
+		dominance = int(float64(maxScore) / float64(total) * 100)
+	}
+	if dominance > 100 {
+		dominance = 100
+	}
+	if dominance < 10 {
+		dominance = 10
+	}
+
+	workFormatScore := 55
+	if workType != "" {
+		workFormatScore += 10
+	}
+	if peopleInteraction != "" {
+		workFormatScore += 15
+	}
+	if workspaceObjects != "" {
+		workFormatScore += 15
+	}
+	if workFormatScore > 100 {
+		workFormatScore = 100
+	}
+
+	riskScore := 50
+	if riskTolerance != "" {
+		riskScore += 25
+	}
+	if goal != "" {
+		riskScore += 15
+	}
+	if riskScore > 100 {
+		riskScore = 100
+	}
+
+	creativeScore := 50
+	if problemSolving == "intuition" || creativityType == "visual" || creativityType == "verbal" {
+		creativeScore = 75
+	}
+	if problemSolving == "logic" || creativityType == "logic_art" {
+		creativeScore = 30
+	}
+	if natureScience != "" || creativityType != "" {
+		if creativeScore < 100 {
+			creativeScore += 5
+		}
+	}
+
+	return []CriteriaScore{
+		{
+			Criterion: "Интересы и склонности",
+			Score:     dominance,
+			Note:      fmt.Sprintf("Любимый предмет (%s) и увлечения (%s) сильнее всего указывают на направление «%s».", orDash(subject), orDash(leisure), category),
+		},
+		{
+			Criterion: "Формат работы (люди/данные/руки)",
+			Score:     workFormatScore,
+			Note:      fmt.Sprintf("Ответы о формате работы (%s), общении с людьми (%s) и объектах труда (%s) показывают, тянет ли тебя к людям, данным или практической работе руками.", orDash(workType), orDash(peopleInteraction), orDash(workspaceObjects)),
+		},
+		{
+			Criterion: "Отношение к риску и стабильности",
+			Score:     riskScore,
+			Note:      fmt.Sprintf("Ответы про отношение к риску (%s) и главную цель (%s) говорят о том, что тебе ближе — стабильность или вызовы.", orDash(riskTolerance), orDash(goal)),
+		},
+		{
+			Criterion: "Творческий vs аналитический склад",
+			Score:     creativeScore,
+			Note:      fmt.Sprintf("Способ решения задач (%s) и тип творчества, который тебе ближе (%s), показывают баланс между логикой и креативностью.", orDash(problemSolving), orDash(creativityType)),
+		},
+	}
 }
 
 func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
@@ -121,6 +395,11 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		problemSolving := ""
 		leisure := ""
 		projectRole := ""
+		peopleInteraction := ""
+		workspaceObjects := ""
+		riskTolerance := ""
+		natureScience := ""
+		creativityType := ""
 
 		if answers != nil {
 			if s, ok := answers["subject"].(string); ok { subject = s }
@@ -130,6 +409,11 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			if p, ok := answers["problem_solving"].(string); ok { problemSolving = p }
 			if l, ok := answers["leisure"].(string); ok { leisure = l }
 			if r, ok := answers["project_role"].(string); ok { projectRole = r }
+			if pi, ok := answers["people_interaction"].(string); ok { peopleInteraction = pi }
+			if wo, ok := answers["workspace_objects"].(string); ok { workspaceObjects = wo }
+			if rt, ok := answers["risk_tolerance"].(string); ok { riskTolerance = rt }
+			if ns, ok := answers["nature_science"].(string); ok { natureScience = ns }
+			if ct, ok := answers["creativity_type"].(string); ok { creativityType = ct }
 		}
 
 		// Scoring categories
@@ -318,6 +602,83 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			lawScore += 5
 		}
 
+		// 8. Workspace objects scoring
+		switch workspaceObjects {
+		case "code_data":
+			itScore += 15
+		case "materials":
+			constructionScore += 10
+			tradesScore += 10
+			engineeringScore += 10
+		case "texts_law":
+			lawScore += 15
+			humanitiesScore += 10
+		case "media_art":
+			artsScore += 15
+			designScore += 10
+		}
+
+		// 9. Risk tolerance scoring
+		switch riskTolerance {
+		case "stable":
+			publicServiceScore += 15
+			educationScore += 10
+		case "flexible":
+			designScore += 10
+			businessScore += 10
+		case "adventure":
+			businessScore += 10
+			sportsScore += 15
+		case "scientific":
+			medicineScore += 15
+			engineeringScore += 10
+		}
+
+		// 10. Nature/science scoring
+		switch natureScience {
+		case "bio_tech":
+			medicineScore += 15
+			agricultureScore += 10
+		case "geo_eco":
+			agricultureScore += 15
+			tourismScore += 10
+		case "tech_only":
+			itScore += 10
+			engineeringScore += 10
+		case "urban":
+			constructionScore += 15
+		}
+
+		// 11. Creativity type scoring
+		switch creativityType {
+		case "logic_art":
+			itScore += 10
+			engineeringScore += 10
+		case "visual":
+			designScore += 15
+			artsScore += 10
+		case "verbal":
+			humanitiesScore += 15
+			educationScore += 10
+		case "business_ideas":
+			businessScore += 15
+		}
+
+		// 12. People interaction scoring
+		switch peopleInteraction {
+		case "help":
+			medicineScore += 15
+			educationScore += 10
+		case "teach":
+			educationScore += 15
+		case "negotiate":
+			businessScore += 10
+			lawScore += 10
+		case "none":
+			itScore += 10
+			engineeringScore += 10
+		}
+
 		// Find the highest scoring category
 		maxScore := itScore
 		category := "it"
@@ -383,7 +744,41 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			category = "tourism"
 		}
 
-		result := fallbackAnalysisResult(db, category, leisure, projectRole, environment, problemSolving)
+		scores := map[string]int{
+			"it":             itScore,
+			"design":         designScore,
+			"business":       businessScore,
+			"medicine":       medicineScore,
+			"engineering":    engineeringScore,
+			"agriculture":    agricultureScore,
+			"trades":         tradesScore,
+			"law":            lawScore,
+			"humanities":     humanitiesScore,
+			"education":      educationScore,
+			"public_service": publicServiceScore,
+			"sports":         sportsScore,
+			"arts":           artsScore,
+			"transport":      transportScore,
+			"construction":   constructionScore,
+			"tourism":        tourismScore,
+		}
+		realCategoryName := categoryDisplayNames[category]
+
+		// Primary path: try the LLM first, grounded in the rule-based scoring
+		// hint and real profession/grant names for the leading category.
+		var result AnalysisResult
+		llmResult, llmErr := tryLLMAnalysis(db, answers, category, realCategoryName, scores)
+		if llmErr == nil && llmResult != nil {
+			result = *llmResult
+		} else {
+			if llmErr != nil {
+				log.Printf("AnalyzeProfile: LLM analysis unavailable, falling back to rules: %v", llmErr)
+			}
+			result = fallbackAnalysisResult(db, category, leisure, projectRole, environment, problemSolving)
+			result.IsFallback = true
+			result.FallbackNote = "Полный AI-анализ временно недоступен — показан упрощённый результат на основе твоих ответов. Попробуй пройти тест ещё раз позже."
+			result.Breakdown = computeFallbackBreakdown(scores, category, subject, workType, environment, goal, problemSolving, leisure, projectRole, peopleInteraction, workspaceObjects, riskTolerance, natureScience, creativityType)
+		}
 
 		db.FirstOrCreate(&portfolio, models.Portfolio{UserID: uid})
 		enrichGrants(db, result.Grants)
@@ -760,13 +1155,24 @@ func fallbackAnalysisResult(db *gorm.DB, category, leisure, projectRole, environ
 
 			top := catProfessions[0]
 
+			// Feature 3: ground the "how to apply" step in a real grant name
+			// pulled from the DB for this category, when one exists.
+			applyStepDescription := "Определи, нужен колледж, вуз или профессиональные курсы для входа в профессию, и запишись на подготовительные занятия по нужным предметам (ЕНТ/ОРТ при поступлении)."
+			if kw, ok := categoryGrantKeywords[category]; ok && kw != "" {
+				var relatedGrants []models.Grant
+				db.Where("tags LIKE ?", "%"+kw+"%").Order("match_percentage DESC").Limit(1).Find(&relatedGrants)
+				if len(relatedGrants) > 0 {
+					applyStepDescription = fmt.Sprintf("Определи, нужен колледж, вуз или профессиональные курсы для входа в профессию. Обрати внимание на грант «%s» (%s) — он подходит для этого направления.", relatedGrants[0].Name, relatedGrants[0].Country)
+				}
+			}
+
 			result = AnalysisResult{
 				TopProf:         top.Name,
 				TopProfCategory: realCategoryName,
 				Summary:         fmt.Sprintf("По твоим ответам ближе всего подходит направление «%s». %s", top.Name, top.Description),
 				Roadmap: []RoadmapStep{
 					{Step: "1", Duration: "1-2 месяца", Title: "Знакомство со сферой", Description: fmt.Sprintf("Изучи, что входит в работу «%s» на практике: посмотри интервью с практикующими специалистами, дни открытых дверей в колледжах/вузах по этому направлению.", top.Name)},
-					{Step: "2", Duration: "2-3 месяца", Title: "Базовые знания и навыки", Description: "Определи, нужен колледж, вуз или профессиональные курсы для входа в профессию, и запишись на подготовительные занятия по нужным предметам (ЕНТ/ОРТ при поступлении)."},
+					{Step: "2", Duration: "2-3 месяца", Title: "Базовые знания и навыки", Description: applyStepDescription},
 					{Step: "3", Duration: "3-4 месяца", Title: "Практика и стажировка", Description: "Найди возможность попробовать себя на практике — стажировку, волонтёрство или подработку в смежной сфере, чтобы проверить интерес к профессии вживую."},
 					{Step: "4", Duration: "2-3 месяца", Title: "Поступление или трудоустройство", Description: "Подготовь документы и подай заявку в выбранное учебное заведение или на подходящую вакансию/ученичество."},
 					{Step: "5", Duration: "постоянно", Title: "Развитие в профессии", Description: "Продолжай развивать навыки через курсы повышения квалификации и профессиональное сообщество в этой сфере."},
