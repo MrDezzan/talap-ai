@@ -23,3 +23,11 @@ dist-ssr
 # Environment & secrets
 .env
 backend/.env
+
+# Compiled Go binaries (build locally, never commit)
+backend/talkd-backend
+backend/talkd-server
+backend/*.exe
+
+# One-off debug/migration scripts (superseded by config/seed.go + AutoMigrate)
+backend/scratch/
