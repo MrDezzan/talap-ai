@@ -38,7 +38,7 @@ func openaiClient() (*openai.Client, error) {
 func llmModel() string {
 	m := os.Getenv("LLM_MODEL")
 	if m == "" {
-		return "google/gemini-3.1-flash"
+		return "deepseek/deepseek-v4-pro-0813"
 	}
 	return m
 }
@@ -63,11 +63,12 @@ type Recommendation struct {
 }
 
 type AnalysisResult struct {
-	TopProf     string           `json:"top_profession"`
-	Summary     string           `json:"summary"`
-	Roadmap     []RoadmapStep    `json:"roadmap"`
-	Professions []Recommendation `json:"professions"`
-	Grants      []Recommendation `json:"grants"`
+	TopProf         string           `json:"top_profession"`
+	TopProfCategory string           `json:"top_profession_category"`
+	Summary         string           `json:"summary"`
+	Roadmap         []RoadmapStep    `json:"roadmap"`
+	Professions     []Recommendation `json:"professions"`
+	Grants          []Recommendation `json:"grants"`
 }
 
 func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
@@ -137,6 +138,17 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		businessScore := 0
 		medicineScore := 0
 		engineeringScore := 0
+		agricultureScore := 0
+		tradesScore := 0
+		lawScore := 0
+		humanitiesScore := 0
+		educationScore := 0
+		publicServiceScore := 0
+		sportsScore := 0
+		artsScore := 0
+		transportScore := 0
+		constructionScore := 0
+		tourismScore := 0
 
 		// 1. Subject scoring
 		switch subject {
@@ -144,14 +156,22 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			itScore += 20
 			engineeringScore += 15
 			businessScore += 5
+			constructionScore += 10
 		case "art":
 			designScore += 20
+			artsScore += 15
 		case "human":
 			businessScore += 20
 			designScore += 5
+			humanitiesScore += 20
+			educationScore += 15
+			lawScore += 15
+			publicServiceScore += 10
+			tourismScore += 10
 		case "science":
 			medicineScore += 20
 			engineeringScore += 15
+			agricultureScore += 15
 		}
 
 		// 2. Work type scoring
@@ -159,15 +179,23 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		case "team":
 			businessScore += 10
 			medicineScore += 10
+			educationScore += 10
+			publicServiceScore += 10
+			sportsScore += 10
 		case "solo":
 			itScore += 10
 			engineeringScore += 10
+			tradesScore += 10
+			artsScore += 5
 		case "lead":
 			businessScore += 15
+			publicServiceScore += 10
 		case "create":
 			itScore += 10
 			designScore += 15
 			engineeringScore += 10
+			artsScore += 15
+			constructionScore += 5
 		}
 
 		// 3. Environment scoring
@@ -175,14 +203,20 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		case "office":
 			businessScore += 10
 			itScore += 5
+			lawScore += 10
+			publicServiceScore += 5
 		case "remote":
 			itScore += 15
 			designScore += 15
+			artsScore += 5
 		case "travel":
 			businessScore += 15
+			tourismScore += 20
+			transportScore += 15
 		case "lab":
 			medicineScore += 15
 			engineeringScore += 15
+			agricultureScore += 15
 		}
 
 		// 4. Goal scoring
@@ -190,16 +224,26 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		case "money":
 			itScore += 10
 			businessScore += 15
+			lawScore += 10
+			transportScore += 5
 		case "impact":
 			medicineScore += 15
 			engineeringScore += 5
+			educationScore += 20
+			publicServiceScore += 20
+			humanitiesScore += 15
+			agricultureScore += 5
 		case "fame":
 			designScore += 15
 			businessScore += 5
+			artsScore += 15
+			sportsScore += 10
 		case "growth":
 			itScore += 10
 			engineeringScore += 10
 			medicineScore += 5
+			tradesScore += 10
+			constructionScore += 5
 		}
 
 		// 5. Problem solving scoring
@@ -208,15 +252,25 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			itScore += 10
 			engineeringScore += 10
 			medicineScore += 5
+			lawScore += 15
 		case "intuition":
 			designScore += 15
+			artsScore += 10
 		case "people":
 			businessScore += 10
 			medicineScore += 10
+			humanitiesScore += 15
+			educationScore += 10
+			publicServiceScore += 10
+			tourismScore += 10
 		case "practical":
 			itScore += 5
 			engineeringScore += 10
 			designScore += 5
+			tradesScore += 20
+			constructionScore += 15
+			transportScore += 15
+			agricultureScore += 10
 		}
 
 		// 6. Leisure scoring
@@ -224,14 +278,20 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 		case "gadgets":
 			itScore += 15
 			engineeringScore += 15
+			tradesScore += 10
+			transportScore += 5
 		case "draw":
 			designScore += 20
+			artsScore += 20
 		case "books":
 			medicineScore += 15
 			engineeringScore += 10
+			lawScore += 10
+			humanitiesScore += 15
 		case "games":
 			businessScore += 15
 			designScore += 5
+			sportsScore += 10
 		}
 
 		// 7. Project role scoring
@@ -240,14 +300,22 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			itScore += 15
 			engineeringScore += 15
 			designScore += 5
+			tradesScore += 15
+			constructionScore += 15
 		case "presenter":
 			businessScore += 15
 			designScore += 10
+			educationScore += 10
+			tourismScore += 10
 		case "manager":
 			businessScore += 20
+			publicServiceScore += 15
+			sportsScore += 10
 		case "researcher":
 			medicineScore += 20
 			engineeringScore += 10
+			agricultureScore += 15
+			lawScore += 5
 		}
 
 		// Find the highest scoring category
@@ -270,8 +338,52 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 			maxScore = engineeringScore
 			category = "engineering"
 		}
+		if agricultureScore > maxScore {
+			maxScore = agricultureScore
+			category = "agriculture"
+		}
+		if tradesScore > maxScore {
+			maxScore = tradesScore
+			category = "trades"
+		}
+		if lawScore > maxScore {
+			maxScore = lawScore
+			category = "law"
+		}
+		if humanitiesScore > maxScore {
+			maxScore = humanitiesScore
+			category = "humanities"
+		}
+		if educationScore > maxScore {
+			maxScore = educationScore
+			category = "education"
+		}
+		if publicServiceScore > maxScore {
+			maxScore = publicServiceScore
+			category = "public_service"
+		}
+		if sportsScore > maxScore {
+			maxScore = sportsScore
+			category = "sports"
+		}
+		if artsScore > maxScore {
+			maxScore = artsScore
+			category = "arts"
+		}
+		if transportScore > maxScore {
+			maxScore = transportScore
+			category = "transport"
+		}
+		if constructionScore > maxScore {
+			maxScore = constructionScore
+			category = "construction"
+		}
+		if tourismScore > maxScore {
+			maxScore = tourismScore
+			category = "tourism"
+		}
 
-		result := fallbackAnalysisResult(category, leisure, projectRole, environment, problemSolving)
+		result := fallbackAnalysisResult(db, category, leisure, projectRole, environment, problemSolving)
 
 		db.FirstOrCreate(&portfolio, models.Portfolio{UserID: uid})
 		enrichGrants(db, result.Grants)
@@ -287,13 +399,14 @@ func AnalyzeProfile(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func fallbackAnalysisResult(category, leisure, projectRole, environment, problemSolving string) AnalysisResult {
+func fallbackAnalysisResult(db *gorm.DB, category, leisure, projectRole, environment, problemSolving string) AnalysisResult {
 	var result AnalysisResult
 	switch category {
 		case "it":
 			if leisure == "gadgets" && projectRole == "builder" {
 				result = AnalysisResult{
 					TopProf: "AI/ML Specialist",
+					TopProfCategory: "IT и данные",
 					Summary: "Отличный выбор! Твоя страсть к инновациям и желание создавать интеллектуальные алгоритмы идеально подходят для сферы ИИ. Профессия разработчика машинного обучения имеет невероятную скорость роста спроса.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1-2 месяца", Title: "Python, ООП и структуры данных", Description: "Изучи Python на продвинутом уровне, работу с классами, ООП и структурами данных (стек, очередь, деревья)."},
@@ -316,6 +429,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else if environment == "remote" {
 				result = AnalysisResult{
 					TopProf: "Software Engineer",
+					TopProfCategory: "IT и данные",
 					Summary: "Твой аналитический склад ума в сочетании со стремлением работать самостоятельно отлично подходит для разработки ПО. Разработка бэкенда дает полную свободу в выборе места работы.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1 месяц", Title: "Базовые алгоритмы и синтаксис", Description: "Освой основы программирования на Go или Python, разберись с типами данных, циклами и простыми алгоритмами."},
@@ -338,6 +452,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else if problemSolving == "logic" {
 				result = AnalysisResult{
 					TopProf: "Cybersecurity Analyst",
+					TopProfCategory: "IT и данные",
 					Summary: "Логика и внимание к деталям — главные качества белого хакера. Ты научишься мыслить как злоумышленник, чтобы выстраивать надежную защиту корпоративных систем от угроз.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "2 месяца", Title: "Основы сетей и Linux", Description: "Освой администрирование Linux в терминале, пойми работу сетей (DNS, DHCP, стек протоколов TCP/IP)."},
@@ -360,6 +475,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else {
 				result = AnalysisResult{
 					TopProf: "Mobile Developer",
+					TopProfCategory: "IT и данные",
 					Summary: "Каждый использует мобильные приложения ежедневно. Твоя техническая подготовка позволит тебе создавать быстрые, удобные и красивые приложения для iOS или Android.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1 месяц", Title: "Язык программирования (Swift/Kotlin)", Description: "Изучи синтаксис Swift для iOS-разработки или Kotlin для Android-разработки, основы ООП."},
@@ -385,6 +501,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			if projectRole == "builder" || problemSolving == "logic" {
 				result = AnalysisResult{
 					TopProf: "UX/UI Designer",
+					TopProfCategory: "Дизайн",
 					Summary: "Идеальный баланс аналитики и творчества! Твоя способность мыслить логически поможет тебе создавать удобную структуру интерфейсов, а эстетический вкус — делать их привлекательными.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1 месяц", Title: "Основы Figma и Инструменты", Description: "Освой основы создания компонентов, автолейаутов, вариантов, стилей и адаптивной верстки в Figma."},
@@ -407,6 +524,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else {
 				result = AnalysisResult{
 					TopProf: "Content Creator / SMM",
+					TopProfCategory: "Дизайн",
 					Summary: "Твоя креативность и понимание людей делают тебя отличным контент-стратегом. Ты сможешь легко находить общий язык с аудиторией и создавать вирусный визуальный и текстовый контент.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1 месяц", Title: "Сторителлинг и Мобильная съемка", Description: "Пойми принципы удержания внимания, раскадровки, монтажа динамичных видео и работы с естественным светом."},
@@ -432,6 +550,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			if projectRole == "manager" {
 				result = AnalysisResult{
 					TopProf: "Product Manager",
+					TopProfCategory: "Бизнес",
 					Summary: "Отличные организаторские качества и умение сплотить команду делают тебя идеальным руководителем продуктов. Ты будешь направлять команду разработки к общей цели.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1 месяц", Title: "Методологии Agile & Scrum", Description: "Пойми, как организуются процессы разработки в IT-компаниях по гибким методологиям (Scrum, Kanban, Jira)."},
@@ -454,6 +573,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else if problemSolving == "logic" {
 				result = AnalysisResult{
 					TopProf: "Financial Analyst",
+					TopProfCategory: "Бизнес",
 					Summary: "Сочетание прагматичности, любви к математике и понимания бизнес-процессов — залог успеха в сфере финансов. Ты будешь анализировать инвестиции, риски и выстраивать стратегии доходности.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1 месяц", Title: "Финансовый Excel", Description: "Изучи формулы, ВПР, индексы, сводные таблицы и диаграммы Excel на экспертном уровне."},
@@ -476,6 +596,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else {
 				result = AnalysisResult{
 					TopProf: "Marketing Director",
+					TopProfCategory: "Бизнес",
 					Summary: "Стратегический взгляд и глубокое понимание человеческой психологии позволят тебе вести крупные рекламные проекты. Ты будешь определять, как именно аудитория видит продукты и услуги.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "1 месяц", Title: "Теория маркетинга и Позиционирование", Description: "Изучи концепцию 4P, позиционирование бренда, анализ конкурентов и сегментацию целевой аудитории."},
@@ -501,6 +622,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			if projectRole == "researcher" {
 				result = AnalysisResult{
 					TopProf: "Biotech Specialist",
+					TopProfCategory: "Медицина",
 					Summary: "Медицина будущего! Твой исследовательский интерес к науке позволит тебе создавать инновации в лабораториях: новые вакцины, методы лечения рака и биотехнологические продукты.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "2 месяца", Title: "Общая биология, химия и генетика", Description: "Изучи основы общей биологии, органической химии, принципы наследственности и основы генетики."},
@@ -523,6 +645,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else {
 				result = AnalysisResult{
 					TopProf: "Medical Doctor",
+					TopProfCategory: "Медицина",
 					Summary: "Твоя высокая эмпатия и научный интерес ведут тебя к самой благородной профессии. Быть врачом — это сложный путь, но он гарантирует колоссальную востребованность и реальное спасение жизней.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "2 месяца", Title: "Подготовка к ЕНТ (Биология/Химия)", Description: "Пройди углубленные курсы по анатомии человека и общей химии для сдачи профильных тестов на высший балл."},
@@ -548,6 +671,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			if leisure == "gadgets" {
 				result = AnalysisResult{
 					TopProf: "Robotics Engineer",
+					TopProfCategory: "Инженерия",
 					Summary: "Роботы — это будущее промышленности. Твоя техническая страсть к гаджетам в сочетании с инженерным мышлением позволит тебе программировать контроллеры и собирать сложные автоматизированные системы.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "2 месяца", Title: "Электротехника и Схемотехника", Description: "Изучи основы электричества, закон Ома, законы Кирхгофа и начни собирать первые схемы на макетной плате."},
@@ -570,6 +694,7 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 			} else {
 				result = AnalysisResult{
 					TopProf: "Civil Engineer",
+					TopProfCategory: "Инженерия",
 					Summary: "Классическая и фундаментальная инженерная специальность. Твой интерес к физике и конструированию позволит тебе проектировать современные города, жилые комплексы, дороги и мосты.",
 					Roadmap: []RoadmapStep{
 						{Step: "1", Duration: "2-3 месяца", Title: "Механика грунтов и Сопромат", Description: "Изучи разделы теоретической механики, основы распределения нагрузок и сопротивления материалов (сопромат)."},
@@ -589,6 +714,68 @@ func fallbackAnalysisResult(category, leisure, projectRole, environment, problem
 						{Name: "Turkiye Burslari", Description: "Полные гранты на гражданскую инженерию в Турции.", MatchPercentage: 81},
 					},
 				}
+			}
+
+		default:
+			realCategoryName, ok := map[string]string{
+				"agriculture":    "Сельское хозяйство и ветеринария",
+				"trades":         "Рабочие и технические специальности",
+				"law":            "Право",
+				"humanities":     "Гуманитарные науки и социальная работа",
+				"education":      "Педагогика",
+				"public_service": "Государственная служба и правопорядок",
+				"sports":         "Спорт",
+				"arts":           "Творческие профессии вне цифры",
+				"transport":      "Транспорт и логистика",
+				"construction":   "Строительство",
+				"tourism":        "Туризм и гостиничное дело",
+			}[category]
+
+			if !ok || db == nil {
+				result = AnalysisResult{
+					TopProf:         "Специалист",
+					TopProfCategory: "",
+					Summary:         "Мы пока не смогли подобрать точную рекомендацию для твоего профиля. Попробуй пройти тест еще раз или изучи каталог профессий самостоятельно.",
+					Roadmap:         []RoadmapStep{},
+					Professions:     []Recommendation{},
+					Grants:          []Recommendation{},
+				}
+				break
+			}
+
+			var catProfessions []models.Profession
+			db.Where("category = ?", realCategoryName).Order("hot DESC, match_percentage DESC").Limit(3).Find(&catProfessions)
+
+			if len(catProfessions) == 0 {
+				result = AnalysisResult{
+					TopProf:         "Специалист",
+					TopProfCategory: realCategoryName,
+					Summary:         fmt.Sprintf("По твоим ответам ближе всего подходит направление «%s». Загляни в каталог профессий, чтобы изучить варианты в этой сфере подробнее.", realCategoryName),
+					Roadmap:         []RoadmapStep{},
+					Professions:     []Recommendation{},
+					Grants:          []Recommendation{},
+				}
+				break
+			}
+
+			top := catProfessions[0]
+
+			result = AnalysisResult{
+				TopProf:         top.Name,
+				TopProfCategory: realCategoryName,
+				Summary:         fmt.Sprintf("По твоим ответам ближе всего подходит направление «%s». %s", top.Name, top.Description),
+				Roadmap: []RoadmapStep{
+					{Step: "1", Duration: "1-2 месяца", Title: "Знакомство со сферой", Description: fmt.Sprintf("Изучи, что входит в работу «%s» на практике: посмотри интервью с практикующими специалистами, дни открытых дверей в колледжах/вузах по этому направлению.", top.Name)},
+					{Step: "2", Duration: "2-3 месяца", Title: "Базовые знания и навыки", Description: "Определи, нужен колледж, вуз или профессиональные курсы для входа в профессию, и запишись на подготовительные занятия по нужным предметам (ЕНТ/ОРТ при поступлении)."},
+					{Step: "3", Duration: "3-4 месяца", Title: "Практика и стажировка", Description: "Найди возможность попробовать себя на практике — стажировку, волонтёрство или подработку в смежной сфере, чтобы проверить интерес к профессии вживую."},
+					{Step: "4", Duration: "2-3 месяца", Title: "Поступление или трудоустройство", Description: "Подготовь документы и подай заявку в выбранное учебное заведение или на подходящую вакансию/ученичество."},
+					{Step: "5", Duration: "постоянно", Title: "Развитие в профессии", Description: "Продолжай развивать навыки через курсы повышения квалификации и профессиональное сообщество в этой сфере."},
+				},
+				Professions: []Recommendation{},
+				Grants:      []Recommendation{},
+			}
+			for _, p := range catProfessions {
+				result.Professions = append(result.Professions, Recommendation{Name: p.Name, Description: p.Description, MatchPercentage: p.MatchPercentage})
 			}
 		}
 	return result

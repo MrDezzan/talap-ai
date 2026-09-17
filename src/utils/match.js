@@ -24,33 +24,10 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
   // Baseline matching score is now 15% to represent low compatibility for unrelated fields
   let score = 15;
 
-  // Helper to map a profession name to a standard category
-  const getCategoryForProfession = (profName) => {
-    const ln = (profName || '').toLowerCase();
-    if (ln.includes('engineer') || ln.includes('specialist') || ln.includes('analyst') || ln.includes('developer') || ln.includes('scientist')) {
-      if (ln.includes('civil') || ln.includes('robotics') || ln.includes('hardware') || ln.includes('aerospace') || ln.includes('environmental')) {
-        return 'Инженерия';
-      }
-      return 'IT и данные';
-    }
-    if (ln.includes('designer') || ln.includes('artist') || ln.includes('creator') || ln.includes('director') || ln.includes('animator')) {
-      return 'Дизайн';
-    }
-    if (ln.includes('manager') || ln.includes('consultant') || ln.includes('analyst') || ln.includes('director') || ln.includes('financial')) {
-      if (ln.includes('marketing') || ln.includes('product') || ln.includes('business') || ln.includes('financial') || ln.includes('consultant')) {
-        return 'Бизнес';
-      }
-    }
-    if (ln.includes('doctor') || ln.includes('biotech') || ln.includes('geneticist') || ln.includes('psychologist') || ln.includes('biochemist')) {
-      return 'Медицина';
-    }
-    if (ln.includes('teacher') || ln.includes('consultant') || ln.includes('learning') || ln.includes('course')) {
-      return 'Образование';
-    }
-    return 'Наука'; // default fallback
-  };
-
-  const userCategory = getCategoryForProfession(topProfession);
+  // Use the real category the backend determined this student's top profession belongs to.
+  // Older saved portfolios (from before this field existed) will just have an empty string here,
+  // which is honest: no category boost applies rather than guessing from an English keyword match.
+  const userCategory = aiResult.top_profession_category || '';
 
   if (isProfession) {
     // 1. Direct match with top recommended profession
@@ -130,10 +107,6 @@ export const calculateRealMatch = (item, portfolio, isProfession = false) => {
     }
     score += Math.round(overlaps * 4);
   }
-
-  // Add a stable pseudo-random fluctuation based on the item name length so it doesn't look flat
-  const nameHash = (itemName.length + (item.category || '').length) % 6;
-  score += nameHash;
 
   // Bounds checking (minimum is now 10%, max is 98%)
   if (score > 98) score = 98;
