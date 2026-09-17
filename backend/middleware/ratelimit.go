@@ -3,23 +3,34 @@ package middleware
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
 
+// entry pairs a per-IP limiter with the last time it was used, so idle
+// entries can be evicted instead of accumulating forever.
+type entry struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
 // RateLimit returns a gin middleware that limits requests per client IP
 // using a token-bucket limiter (requestsPerMinute refill rate, burst capacity).
 //
-// NOTE: this keeps one *rate.Limiter per IP forever in memory. For a first
-// pass that's fine, but a production version should periodically sweep and
-// evict limiters for IPs that haven't been seen in a while (e.g. a
-// time.Ticker goroutine removing entries older than N minutes) to avoid
-// unbounded memory growth under many distinct client IPs.
+// A background goroutine periodically sweeps out limiters for IPs that
+// haven't made a request in a while, so memory use stays bounded even
+// under many distinct client IPs (instead of growing forever).
 func RateLimit(requestsPerMinute float64, burst int) gin.HandlerFunc {
+	const (
+		idleTimeout   = 10 * time.Minute
+		sweepInterval = 5 * time.Minute
+	)
+
 	var (
 		mu       sync.Mutex
-		limiters = make(map[string]*rate.Limiter)
+		limiters = make(map[string]*entry)
 	)
 
 	limitPerSecond := rate.Limit(requestsPerMinute / 60)
@@ -28,13 +39,29 @@ func RateLimit(requestsPerMinute float64, burst int) gin.HandlerFunc {
 		mu.Lock()
 		defer mu.Unlock()
 
-		limiter, exists := limiters[ip]
+		e, exists := limiters[ip]
 		if !exists {
-			limiter = rate.NewLimiter(limitPerSecond, burst)
-			limiters[ip] = limiter
+			e = &entry{limiter: rate.NewLimiter(limitPerSecond, burst)}
+			limiters[ip] = e
 		}
-		return limiter
+		e.lastSeen = time.Now()
+		return e.limiter
 	}
+
+	go func() {
+		ticker := time.NewTicker(sweepInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			cutoff := time.Now().Add(-idleTimeout)
+			mu.Lock()
+			for ip, e := range limiters {
+				if e.lastSeen.Before(cutoff) {
+					delete(limiters, ip)
+				}
+			}
+			mu.Unlock()
+		}
+	}()
 
 	return func(c *gin.Context) {
 		ip := c.ClientIP()

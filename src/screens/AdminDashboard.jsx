@@ -23,6 +23,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingGrants, setPendingGrants] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [moderatingId, setModeratingId] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -37,6 +40,32 @@ export default function AdminDashboard() {
     };
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const data = await api.get('/admin/grants/pending');
+        setPendingGrants(Array.isArray(data) ? data : []);
+      } catch (err) {
+        // Non-fatal: the main stats view still works even if this fails.
+      } finally {
+        setPendingLoading(false);
+      }
+    };
+    fetchPending();
+  }, []);
+
+  const handleModerate = async (id, action) => {
+    setModeratingId(id);
+    try {
+      await api.post(`/admin/grants/${id}/${action}`);
+      setPendingGrants(prev => prev.filter(g => g.id !== id));
+    } catch (err) {
+      // Leave the row in place so the admin can retry.
+    } finally {
+      setModeratingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -97,6 +126,73 @@ export default function AdminDashboard() {
             </Card>
           ))}
         </div>
+
+        {/* Row 1.5: Grant moderation queue (auto-imported, pending_review) */}
+        <Card style={{ padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <h3 style={{ fontFamily: C.font, fontSize: 16, fontWeight: 800, color: C.ink900, margin: 0 }}>
+                  {t('admin_pending_title')} {pendingGrants.length > 0 && `(${pendingGrants.length})`}
+                </h3>
+                <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink500, marginTop: 4 }}>{t('admin_pending_subtitle')}</div>
+              </div>
+            </div>
+
+            {pendingLoading ? (
+              <div style={{ fontFamily: C.font, fontSize: 13, color: C.ink500, padding: '12px 0' }}>{t('admin_pending_loading')}</div>
+            ) : pendingGrants.length === 0 ? (
+              <div style={{ fontFamily: C.font, fontSize: 13, color: C.ink300, padding: '12px 0' }}>{t('admin_pending_empty')}</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pendingGrants.map(g => (
+                  <div key={g.id} style={{ border: `1px solid ${C.hairline}`, borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: C.font, fontSize: 14, fontWeight: 700, color: C.ink900 }}>{g.name}</span>
+                        {g.country && <Chip tone="default" style={{ fontSize: 10 }}>{g.country}</Chip>}
+                      </div>
+                      {g.subtitle && <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink500, marginBottom: 4 }}>{g.subtitle}</div>}
+                      {g.description && (
+                        <div style={{ fontFamily: C.font, fontSize: 12, color: C.ink700, lineHeight: 1.5, maxWidth: 640 }}>
+                          {g.description.length > 220 ? `${g.description.slice(0, 220)}…` : g.description}
+                        </div>
+                      )}
+                      <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink300, marginTop: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                        {g.source_url && (
+                          <span>{t('admin_pending_source')}: <a href={g.source_url} target="_blank" rel="noreferrer" style={{ color: C.blue }}>{g.source_url}</a></span>
+                        )}
+                        {g.fetched_at && (
+                          <span>{t('admin_pending_fetched')}: {new Date(g.fetched_at).toLocaleDateString(lang === 'kz' ? 'kk-KZ' : lang === 'en' ? 'en-US' : 'ru-RU')}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <button
+                        onClick={() => handleModerate(g.id, 'approve')}
+                        disabled={moderatingId === g.id}
+                        style={{
+                          padding: '8px 16px', borderRadius: 8, border: 'none', background: '#10B981', color: '#fff',
+                          fontFamily: C.font, fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: moderatingId === g.id ? 0.6 : 1,
+                        }}
+                      >
+                        {t('admin_approve')}
+                      </button>
+                      <button
+                        onClick={() => handleModerate(g.id, 'reject')}
+                        disabled={moderatingId === g.id}
+                        style={{
+                          padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.hairline}`, background: '#fff', color: '#FF4D4D',
+                          fontFamily: C.font, fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: moderatingId === g.id ? 0.6 : 1,
+                        }}
+                      >
+                        {t('admin_reject')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+        </Card>
 
         {/* Row 2: Breakdown distributions */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
