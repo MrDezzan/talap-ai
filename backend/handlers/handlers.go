@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -39,7 +37,6 @@ func Register(db *gorm.DB) gin.HandlerFunc {
 		input.Email = strings.TrimSpace(strings.ToLower(input.Email))
 		input.Name = strings.TrimSpace(input.Name)
 
-		log.Printf("[DEBUG] Register attempt: email=%s name=%s", input.Email, input.Name)
 		if input.Name == "" || input.Email == "" || input.Password == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "All fields are required"})
 			return
@@ -61,11 +58,11 @@ func Register(db *gorm.DB) gin.HandlerFunc {
 		var existing models.User
 		err = db.Where("email = ?", input.Email).First(&existing).Error
 		if err == nil {
-			log.Printf("[DEBUG] User already exists: %s (ID: %d)", input.Email, existing.ID)
-			c.JSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("Email %s уже зарегистрирован (ID: %d)", input.Email, existing.ID)})
+			// Deliberately generic: do not echo the email back or leak the
+			// internal user ID — that would let anyone enumerate which
+			// addresses are registered and their account IDs.
+			c.JSON(http.StatusConflict, gin.H{"error": "Пользователь с таким email уже зарегистрирован"})
 			return
-		} else {
-			log.Printf("[DEBUG] User not found or error: %v", err)
 		}
 
 		user := models.User{
