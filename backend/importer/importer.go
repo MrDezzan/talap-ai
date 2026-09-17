@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -15,7 +14,9 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"gorm.io/gorm"
 
+	"talkd-backend/logger"
 	"talkd-backend/models"
+	"talkd-backend/monitoring"
 )
 
 var (
@@ -174,7 +175,7 @@ func RunOnce(db *gorm.DB) (int, error) {
 		}
 	}
 	if len(sources) == 0 {
-		log.Println("importer: no GRANT_IMPORT_SOURCES configured, skipping")
+		logger.Info("importer: no GRANT_IMPORT_SOURCES configured, skipping")
 		return 0, nil
 	}
 
@@ -184,14 +185,14 @@ func RunOnce(db *gorm.DB) (int, error) {
 	for _, sourceURL := range sources {
 		text, err := fetchAndCleanText(sourceURL)
 		if err != nil {
-			log.Printf("importer: skipping source %s: %v", sourceURL, err)
+			logger.Warn("importer: skipping source", "source", sourceURL, "error", err)
 			lastErr = err
 			continue
 		}
 
 		candidates, err := extractGrants(text)
 		if err != nil {
-			log.Printf("importer: extraction failed for source %s: %v", sourceURL, err)
+			logger.Error("importer: extraction failed for source", "source", sourceURL, "error", err)
 			lastErr = err
 			continue
 		}
@@ -208,7 +209,7 @@ func RunOnce(db *gorm.DB) (int, error) {
 			if err := db.Model(&models.Grant{}).
 				Where("LOWER(name) = LOWER(?) AND LOWER(country) = LOWER(?)", name, country).
 				Count(&count).Error; err != nil {
-				log.Printf("importer: dedupe check failed for %q: %v", name, err)
+				logger.Error("importer: dedupe check failed", "name", name, "error", err)
 				lastErr = err
 				continue
 			}
@@ -230,7 +231,7 @@ func RunOnce(db *gorm.DB) (int, error) {
 				FetchedAt:    &fetchedAt,
 			}
 			if err := db.Create(&grant).Error; err != nil {
-				log.Printf("importer: insert failed for %q: %v", name, err)
+				logger.Error("importer: insert failed", "name", name, "error", err)
 				lastErr = err
 				continue
 			}
@@ -249,7 +250,7 @@ func RunOnce(db *gorm.DB) (int, error) {
 // listening on the other end of a background goroutine).
 func StartScheduled(db *gorm.DB, interval time.Duration) {
 	if os.Getenv("ENABLE_GRANT_IMPORTER") != "true" {
-		log.Println("importer: disabled (set ENABLE_GRANT_IMPORTER=true to enable)")
+		logger.Info("importer: disabled (set ENABLE_GRANT_IMPORTER=true to enable)")
 		return
 	}
 
@@ -257,14 +258,16 @@ func StartScheduled(db *gorm.DB, interval time.Duration) {
 		runSafely := func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Printf("importer: recovered from panic: %v", r)
+					logger.Error("importer: recovered from panic", "panic", r)
+					monitoring.Alert("panic", map[string]any{"source": "importer", "panic": fmt.Sprint(r)})
 				}
 			}()
 			n, err := RunOnce(db)
 			if err != nil {
-				log.Printf("importer: run finished with error (inserted %d new pending grants): %v", n, err)
+				logger.Error("importer: run finished with error", "inserted", n, "error", err)
+				monitoring.Alert("importer_run_error", map[string]any{"inserted": n, "error": err.Error()})
 			} else {
-				log.Printf("importer: inserted %d new pending grants", n)
+				logger.Info("importer: inserted new pending grants", "count", n)
 			}
 		}
 

@@ -2,13 +2,14 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	"talkd-backend/logger"
 )
 
 func getEnv(key, fallback string) string {
@@ -75,13 +76,13 @@ func InitDB() *gorm.DB {
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatal("Failed to connect to database", "error", err)
 	}
 
 	// Connection pool tuning
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("Failed to get sql.DB: %v", err)
+		logger.Fatal("Failed to get sql.DB", "error", err)
 	}
 	sqlDB.SetMaxOpenConns(20)
 	sqlDB.SetMaxIdleConns(5)

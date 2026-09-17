@@ -1,21 +1,21 @@
 package config
 
 import (
+	"talkd-backend/logger"
 	"talkd-backend/models"
 	"gorm.io/gorm"
-	"log"
 	"os"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func SeedDB(db *gorm.DB) {
-	log.Println("Running database seed checks...")
+	logger.Info("Running database seed checks...")
 
 	// Seed/Update Admin User to ensure correct credentials, but only if an
 	// admin password was explicitly provided via environment variable.
 	adminPassword := os.Getenv("ADMIN_SEED_PASSWORD")
 	if adminPassword == "" {
-		log.Println("ADMIN_SEED_PASSWORD not set — skipping admin account seed")
+		logger.Info("ADMIN_SEED_PASSWORD not set — skipping admin account seed")
 	} else {
 		var adminUser models.User
 		hashed, _ := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
@@ -31,18 +31,18 @@ func SeedDB(db *gorm.DB) {
 				School:       "AITU School",
 			}
 			if err := db.Create(&adminUser).Error; err != nil {
-				log.Printf("Failed to seed admin user: %v", err)
+				logger.Error("Failed to seed admin user", "error", err)
 			} else {
-				log.Println("✅ Successfully seeded admin user: alikhanchick765@gmail.com")
+				logger.Info("Successfully seeded admin user", "email", "alikhanchick765@gmail.com")
 			}
 		} else {
 			// Found, update password and role to ensure they match requested values
 			adminUser.PasswordHash = string(hashed)
 			adminUser.Role = "admin"
 			if err := db.Save(&adminUser).Error; err != nil {
-				log.Printf("Failed to update admin user: %v", err)
+				logger.Error("Failed to update admin user", "error", err)
 			} else {
-				log.Println("✅ Successfully updated admin user credentials: alikhanchick765@gmail.com")
+				logger.Info("Successfully updated admin user credentials", "email", "alikhanchick765@gmail.com")
 			}
 		}
 	}
@@ -52,9 +52,9 @@ func SeedDB(db *gorm.DB) {
 	var professionCount int64
 	db.Model(&models.Profession{}).Count(&professionCount)
 	if professionCount > 0 {
-		log.Printf("Professions already present (%d rows), skipping seed", professionCount)
+		logger.Info("Professions already present, skipping seed", "count", professionCount)
 	} else {
-		log.Println("Seeding professions (first run)...")
+		logger.Info("Seeding professions (first run)...")
 		professions := []models.Profession{
 		{
 			Name: "Software Engineer", 
@@ -576,9 +576,9 @@ func SeedDB(db *gorm.DB) {
 	var grantCount int64
 	db.Model(&models.Grant{}).Count(&grantCount)
 	if grantCount > 0 {
-		log.Printf("Grants already present (%d rows), skipping seed", grantCount)
+		logger.Info("Grants already present, skipping seed", "count", grantCount)
 	} else {
-		log.Println("Seeding grants (first run)...")
+		logger.Info("Seeding grants (first run)...")
 		grants := []models.Grant{
 		{
 			Name: "Грант Qazaq AI Research University (QAIRU)", 
@@ -1146,5 +1146,5 @@ func SeedDB(db *gorm.DB) {
 		}
 	}
 
-	log.Println("Seed checks complete!")
+	logger.Info("Seed checks complete!")
 }

@@ -1,7 +1,8 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -13,21 +14,33 @@ import (
 	"talkd-backend/config"
 	"talkd-backend/handlers"
 	"talkd-backend/importer"
+	"talkd-backend/logger"
 	"talkd-backend/middleware"
+	"talkd-backend/migrations"
 	"talkd-backend/models"
+	"talkd-backend/monitoring"
 )
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, reading from environment")
+		logger.Info("No .env file found, reading from environment")
 	}
 
 	db := config.InitDB()
 
 	if err := db.AutoMigrate(&models.User{}, &models.Grant{}, &models.Profession{}, &models.Portfolio{}, &models.ChatThread{}, &models.ChatMessage{}); err != nil {
-		log.Printf("AutoMigrate error: %v", err)
+		logger.Error("AutoMigrate error", "error", err)
 	}
 	config.SeedDB(db)
+
+	// Run versioned migrations after AutoMigrate/SeedDB, so the DB is
+	// already in its normal state. This only affects future explicit
+	// migrations (see backend/migrations), not current functionality, so
+	// we log and continue rather than crashing the app on failure.
+	if err := migrations.Migrate(db); err != nil {
+		logger.Error("migrations: failed to apply", "error", err)
+		monitoring.Alert("migrations_failed", map[string]any{"error": err.Error()})
+	}
 
 	// Must start after AutoMigrate/SeedDB so the Grant table (and its
 	// status/source_url/fetched_at columns) definitely exists before the
@@ -35,6 +48,14 @@ func main() {
 	importer.StartScheduled(db, 6*time.Hour)
 
 	r := gin.Default()
+	// gin.Default() installs its own panic recovery; replace it with a
+	// custom one so HTTP-request-level panics also fire an alert, in
+	// addition to responding with a generic 500.
+	r.Use(gin.CustomRecoveryWithWriter(io.Discard, func(c *gin.Context, recovered any) {
+		logger.Error("http: recovered from panic", "panic", fmt.Sprint(recovered), "path", c.Request.URL.Path)
+		monitoring.Alert("panic", map[string]any{"error": fmt.Sprint(recovered), "path": c.Request.URL.Path})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	}))
 
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGINS")
 	corsConfig := cors.Config{
@@ -50,8 +71,9 @@ func main() {
 		corsConfig.AllowOrigins = strings.Split(allowedOrigin, ",")
 	}
 
-	// gin.Default() below already installs Logger + Recovery middleware,
-	// so we only need to add CORS on top of it.
+	// gin.Default() installs its own Logger middleware; recovery was
+	// replaced above with our custom handler, so we only need to add
+	// CORS on top of it here.
 	r.Use(cors.New(corsConfig))
 
 	// Lightweight healthcheck for Railway/load balancers — no DB round trip
@@ -120,8 +142,8 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s", port)
+	logger.Info("Server starting on port", "port", port)
 	if err := r.Run(":" + port); err != nil {
-		log.Fatal(err)
+		logger.Fatal("server exited", "error", err)
 	}
 }

@@ -2,11 +2,12 @@ package auth
 
 import (
 	"errors"
-	"log"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"talkd-backend/logger"
 )
 
 type Claims struct {
@@ -19,7 +20,7 @@ type Claims struct {
 func secret() []byte {
 	s := os.Getenv("JWT_SECRET")
 	if s == "" {
-		log.Fatal("JWT_SECRET env variable is required")
+		logger.Fatal("JWT_SECRET env variable is required")
 	}
 	return []byte(s)
 }
