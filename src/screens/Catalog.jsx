@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMobile } from '../hooks/useMobile';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
@@ -98,47 +98,56 @@ export default function Catalog() {
   const isMobile = useMobile();
   const { portfolio } = useAuth();
   const [professions, setProfessions] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProfession, setSelectedProfession] = useState(null);
   const [search, setSearch] = useState('');
-
-  const CATEGORIES = [
-    { key: 'all', label: t('cat_all') },
-    { key: 'IT и данные', label: t('cat_it') },
-    { key: 'Дизайн', label: t('cat_design') },
-    { key: 'Бизнес', label: t('cat_business') },
-    { key: 'Наука', label: t('cat_science') },
-    { key: 'Образование', label: t('cat_edu') },
-    { key: 'Медицина', label: t('cat_med') },
-    { key: 'Инженерия', label: t('cat_eng') },
-  ];
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search).get('q');
     if (query) setSearch(query);
 
     api.get('/professions')
-      .then(d => { 
-        setProfessions(d); 
-        setLoading(false); 
+      .then(d => {
+        setProfessions(d);
+        setCategories([...new Set(d.map(p => p.category).filter(Boolean))]);
+        setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (activeCategory !== 'all') params.set('category', activeCategory);
+    const qs = params.toString();
+
+    setLoading(true);
+    api.get(`/professions${qs ? `?${qs}` : ''}`)
+      .then(d => {
+        if (cancelled) return;
+        setProfessions(d);
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [activeCategory, search]);
+
   if (loading) return null;
 
-  const filtered = professions
-    .filter(p => {
-      const matchCat = activeCategory === 'all' || p.category === activeCategory;
-      const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase());
-      return matchCat && matchSearch;
-    })
-    .sort((a, b) => {
-      const scoreA = calculateRealMatch(a, portfolio, true) || 0;
-      const scoreB = calculateRealMatch(b, portfolio, true) || 0;
-      return scoreB - scoreA;
-    });
+  const filtered = [...professions].sort((a, b) => {
+    const scoreA = calculateRealMatch(a, portfolio, true) || 0;
+    const scoreB = calculateRealMatch(b, portfolio, true) || 0;
+    return scoreB - scoreA;
+  });
 
   return (
     <div style={{ flex: 1, overflow: 'auto', background: C.mist, display: 'flex', flexDirection: 'column' }}>
@@ -156,55 +165,62 @@ export default function Catalog() {
 
       <div style={{ padding: isMobile ? 16 : 32 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-          {CATEGORIES.map(cat => (
+          <Chip selected={activeCategory === 'all'} onClick={() => setActiveCategory('all')}>{t('cat_all')}</Chip>
+          {categories.map(cat => (
             <Chip
-              key={cat.key}
-              selected={activeCategory === cat.key}
-              onClick={() => setActiveCategory(cat.key)}
+              key={cat}
+              selected={activeCategory === cat}
+              onClick={() => setActiveCategory(cat)}
             >
-              {cat.label}
+              {cat}
             </Chip>
           ))}
           <div style={{ flex: 1 }} />
           <Chip dot tone="ai" onClick={() => navigate('/chat')}>{t('cat_ai_sort')}</Chip>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 16 }}>
-          {filtered.map((p, i) => (
-            <Card key={i} onClick={() => setSelectedProfession(p)} style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 10, background: C.blue50,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Icon name="briefcase" size={22} color={C.blue} strokeWidth={2} />
-              </div>
-              <div style={{ fontFamily: C.font, fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: C.ink900, marginTop: 14 }}>
-                {p.name}
-              </div>
-              {(() => {
-                const score = calculateRealMatch(p, portfolio, true);
-                return score ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                    <Icon name="sparkles" size={12} color={C.blue} />
-                    <span style={{ fontFamily: '"Geist Mono", monospace', fontSize: 12, fontWeight: 600, color: C.blue }}>
-                      {score}% {t('cat_match')}
-                    </span>
+        {filtered.length === 0 ? (
+          <div style={{ fontFamily: C.font, fontSize: 14, color: C.ink500, textAlign: 'center', padding: '48px 0' }}>
+            Ничего не найдено
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: isMobile ? 12 : 16 }}>
+            {filtered.map((p, i) => (
+              <Card key={i} onClick={() => setSelectedProfession(p)} style={{ position: 'relative', cursor: 'pointer' }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 10, background: C.blue50,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon name="briefcase" size={22} color={C.blue} strokeWidth={2} />
+                </div>
+                <div style={{ fontFamily: C.font, fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: C.ink900, marginTop: 14 }}>
+                  {p.name}
+                </div>
+                {(() => {
+                  const score = calculateRealMatch(p, portfolio, true);
+                  return score ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                      <Icon name="sparkles" size={12} color={C.blue} />
+                      <span style={{ fontFamily: '"Geist Mono", monospace', fontSize: 12, fontWeight: 600, color: C.blue }}>
+                        {score}% {t('cat_match')}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.hairline}` }}>
+                  <div>
+                    <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>{t('cat_salary')}</div>
+                    <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.ink900, marginTop: 2 }}>{p.salary}</div>
                   </div>
-                ) : null;
-              })()}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.hairline}` }}>
-                <div>
-                  <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>{t('cat_salary')}</div>
-                  <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.ink900, marginTop: 2 }}>{p.salary}</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>{t('cat_growth')}</div>
+                    <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.success700, marginTop: 2 }}>{p.growth}</div>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: C.font, fontSize: 11, color: C.ink500 }}>{t('cat_growth')}</div>
-                  <div style={{ fontFamily: C.font, fontSize: 13, fontWeight: 600, color: C.success700, marginTop: 2 }}>{p.growth}</div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {selectedProfession && (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMobile } from '../hooks/useMobile';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
@@ -166,11 +166,14 @@ export default function Grants() {
   const isMobile = useMobile();
   const { aiProfile } = useAuth();
   const [grants, setGrants] = useState([]);
+  const [countries, setCountries] = useState([]);
   const [portfolio, setPortfolio] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [activeCountry, setActiveCountry] = useState('all');
   const [selectedGrant, setSelectedGrant] = useState(null);
   const [search, setSearch] = useState('');
+  const isFirstRun = useRef(true);
 
   const FILTERS = [
     { key: 'all', label: t('cat_all') },
@@ -192,25 +195,44 @@ export default function Grants() {
     ])
       .then(([grantsData, portfolioData]) => {
         setGrants(grantsData);
+        setCountries([...new Set(grantsData.map(g => g.country).filter(Boolean))]);
         setPortfolio(portfolioData);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (activeCountry !== 'all') params.set('country', activeCountry);
+    if (activeFilter !== 'all') params.set('tags', activeFilter);
+    const qs = params.toString();
+
+    setLoading(true);
+    api.get(`/grants${qs ? `?${qs}` : ''}`)
+      .then(data => {
+        if (cancelled) return;
+        setGrants(data);
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [activeFilter, activeCountry, search]);
+
   if (loading) return null;
 
-  const filtered = grants
-    .filter(g => {
-      const matchFilter = activeFilter === 'all' || (g.tags && g.tags.includes(activeFilter));
-      const matchSearch = !search || g.name.toLowerCase().includes(search.toLowerCase()) || (g.subtitle && g.subtitle.toLowerCase().includes(search.toLowerCase()));
-      return matchFilter && matchSearch;
-    })
-    .sort((a, b) => {
-      const scoreA = calculateRealMatch(a, portfolio, false) || 0;
-      const scoreB = calculateRealMatch(b, portfolio, false) || 0;
-      return scoreB - scoreA;
-    });
+  const filtered = [...grants].sort((a, b) => {
+    const scoreA = calculateRealMatch(a, portfolio, false) || 0;
+    const scoreB = calculateRealMatch(b, portfolio, false) || 0;
+    return scoreB - scoreA;
+  });
 
   return (
     <div style={{ flex: 1, overflow: 'auto', background: C.mist, display: 'flex', flexDirection: 'column' }}>
@@ -225,8 +247,8 @@ export default function Grants() {
       />
 
       <div style={{ padding: isMobile ? 16 : 32 }}>
-        
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
           {FILTERS.map(f => (
             <Chip key={f.key} selected={activeFilter === f.key} onClick={() => setActiveFilter(f.key)}>{f.label}</Chip>
           ))}
@@ -234,9 +256,25 @@ export default function Grants() {
           <Chip dot tone="ai" onClick={() => navigate('/chat')}>{t('grants_ai_match')}</Chip>
         </div>
 
+        {countries.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+            <Chip selected={activeCountry === 'all'} onClick={() => setActiveCountry('all')}>Все страны</Chip>
+            {countries.map(c => (
+              <Chip key={c} selected={activeCountry === c} onClick={() => setActiveCountry(c)}>{c}</Chip>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: 24 }}>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {filtered.length === 0 && (
+              <Card>
+                <div style={{ fontFamily: C.font, fontSize: 14, color: C.ink500, textAlign: 'center', padding: '24px 0' }}>
+                  Ничего не найдено
+                </div>
+              </Card>
+            )}
             {filtered.map(g => (
               <Card key={g.id} onClick={() => setSelectedGrant(g)} style={{ cursor: 'pointer' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'flex-start' }}>
