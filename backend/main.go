@@ -76,6 +76,16 @@ func main() {
 	// CORS on top of it here.
 	r.Use(cors.New(corsConfig))
 
+	// Defense-in-depth against oversized request bodies (token-drain /
+	// abuse protection): the AI chat/portfolio handlers already validate
+	// specific field lengths, but a hard cap here rejects any giant body
+	// outright, cheaply, before it even reaches JSON binding.
+	const maxRequestBodyBytes = 512 * 1024 // 512KB — generous for any legitimate request here
+	r.Use(func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxRequestBodyBytes)
+		c.Next()
+	})
+
 	// Lightweight healthcheck for Railway/load balancers — no DB round trip
 	// needed, just confirms the process is up and serving.
 	r.GET("/api/health", func(c *gin.Context) {

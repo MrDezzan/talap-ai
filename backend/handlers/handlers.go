@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -439,6 +440,41 @@ func UpdatePortfolio(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Token-drain protection: every field here gets embedded into the
+		// AIChat system prompt on EVERY subsequent chat message (see
+		// portfolioStatus in ai.go), so an oversized value here isn't a
+		// one-off cost — it's a persistent per-message tax on the LLM bill
+		// until the user changes it again. Cap generously but firmly.
+		const (
+			maxFreeTextChars  = 2000
+			maxSkillsCount    = 30
+			maxSkillChars     = 100
+			maxAchievementsKB = 20
+		)
+		if len([]rune(input.Bio)) > maxFreeTextChars || len([]rune(input.ENT)) > maxFreeTextChars || len([]rune(input.English)) > maxFreeTextChars {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Поля bio/ent/english не должны превышать %d символов", maxFreeTextChars)})
+			return
+		}
+		if len(input.Skills) > maxSkillsCount {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Не более %d навыков", maxSkillsCount)})
+			return
+		}
+		for _, s := range input.Skills {
+			if len([]rune(s)) > maxSkillChars {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Название навыка не должно превышать %d символов", maxSkillChars)})
+				return
+			}
+		}
+		achJSON, err := json.Marshal(input.Achievements)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат достижений"})
+			return
+		}
+		if len(achJSON) > maxAchievementsKB*1024 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Раздел достижений слишком большой (максимум %dKB)", maxAchievementsKB)})
+			return
+		}
+
 		var portfolio models.Portfolio
 		db.Where("user_id = ?", uid).FirstOrInit(&portfolio)
 		portfolio.UserID = uid
@@ -446,10 +482,8 @@ func UpdatePortfolio(db *gorm.DB) gin.HandlerFunc {
 		portfolio.ENT = input.ENT
 		portfolio.English = input.English
 		portfolio.Skills = input.Skills
-		
-		achJSON, _ := json.Marshal(input.Achievements)
 		portfolio.Achievements = achJSON
-		
+
 		db.Save(&portfolio)
 		c.JSON(http.StatusOK, portfolio)
 	}

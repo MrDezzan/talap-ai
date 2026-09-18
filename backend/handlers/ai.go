@@ -1292,6 +1292,33 @@ func AIChat(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Token-drain protection: input.Message and input.History are fully
+		// client-controlled and get forwarded almost verbatim into the LLM
+		// request. Without limits here, a single authenticated request could
+		// carry an arbitrarily large message or thousands of history entries
+		// and burn through the OpenRouter/DeepSeek quota in one call.
+		const (
+			maxMessageChars      = 4000
+			maxHistoryEntries    = 20
+			maxHistoryEntryChars = 2000
+		)
+		if len([]rune(input.Message)) > maxMessageChars {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Сообщение слишком длинное (максимум %d символов)", maxMessageChars)})
+			return
+		}
+		if len(input.History) > maxHistoryEntries {
+			// Keep only the most recent entries — older context is the least
+			// useful and the most likely to be padding in an abuse attempt.
+			input.History = input.History[len(input.History)-maxHistoryEntries:]
+		}
+		for i, h := range input.History {
+			if len([]rune(h["content"])) > maxHistoryEntryChars {
+				truncated := []rune(h["content"])[:maxHistoryEntryChars]
+				h["content"] = string(truncated)
+				input.History[i] = h
+			}
+		}
+
 		userID, exists := c.Get("user_id")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})

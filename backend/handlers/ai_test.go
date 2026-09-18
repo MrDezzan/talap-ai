@@ -213,3 +213,88 @@ func TestAnalyzeProfile_PeopleInteractionAndWorkspaceObjects_Law(t *testing.T) {
 		t.Errorf("Expected breakdown to contain exactly 4 criteria, got %v", response["breakdown"])
 	}
 }
+
+// setupTestDBForAIChat additionally migrates the chat tables that
+// AnalyzeProfile's tests don't need but AIChat does.
+func setupTestDBForAIChat(t *testing.T) *gorm.DB {
+	t.Helper()
+	db := setupTestDBForAI()
+	if err := db.AutoMigrate(&models.ChatThread{}, &models.ChatMessage{}); err != nil {
+		t.Fatalf("failed to migrate chat tables: %v", err)
+	}
+	return db
+}
+
+// withFakeAuth injects a user_id into the gin context the way
+// middleware.AuthRequired() would after verifying a real JWT, so handler
+// tests can exercise the authenticated path without a real token.
+func withFakeAuth(uid uint) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("user_id", uid)
+		c.Next()
+	}
+}
+
+// TestAIChat_RejectsOversizedMessage guards the token-drain protection added
+// to AIChat: input.Message is fully client-controlled and gets forwarded
+// almost verbatim into the paid LLM request, so an oversized message must be
+// rejected outright (400) before any DB writes or LLM calls happen.
+func TestAIChat_RejectsOversizedMessage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := setupTestDBForAIChat(t)
+
+	r := gin.New()
+	r.Use(withFakeAuth(1))
+	r.POST("/ai/chat", AIChat(db))
+
+	tooLong := make([]byte, 5000) // over the 4000-char cap
+	for i := range tooLong {
+		tooLong[i] = 'a'
+	}
+	payload := map[string]interface{}{"message": string(tooLong)}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/ai/chat", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for an oversized message, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestAIChat_TruncatesOversizedHistory_InsteadOfRejecting verifies that a
+// too-long history is silently truncated to the most recent entries (rather
+// than the whole request being rejected — history padding is common and
+// legitimate, unlike a single giant message), and that a reasonably-sized
+// request still reaches the LLM-availability check (503, since no
+// OPENAI_API_KEY/OPENROUTER_API_KEY is set in the test environment) instead
+// of being rejected for size.
+func TestAIChat_TruncatesOversizedHistory_InsteadOfRejecting(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := setupTestDBForAIChat(t)
+
+	r := gin.New()
+	r.Use(withFakeAuth(2))
+	r.POST("/ai/chat", AIChat(db))
+
+	history := make([]map[string]string, 0, 50)
+	for i := 0; i < 50; i++ { // over the 20-entry cap
+		history = append(history, map[string]string{"role": "user", "content": "привет"})
+	}
+	payload := map[string]interface{}{"message": "нормальное сообщение", "history": history}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/ai/chat", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// Not rejected for size (400) — it should sail through validation and
+	// only fail because no real LLM key is configured in this test env.
+	if w.Code == http.StatusBadRequest {
+		t.Fatalf("expected the oversized-but-truncatable history to be accepted (then fail on missing LLM key), got 400: %s", w.Body.String())
+	}
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 (no LLM key configured in test env), got %d: %s", w.Code, w.Body.String())
+	}
+}
