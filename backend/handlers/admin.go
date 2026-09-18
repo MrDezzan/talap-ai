@@ -185,8 +185,10 @@ func UpdateGrant(db *gorm.DB) gin.HandlerFunc {
 		// Select("*") forces GORM to write every column from input, including
 		// zero values (empty string, 0, false) — plain .Updates(struct) silently
 		// skips zero-value fields, so without this an admin could never clear a
-		// text field back to empty.
-		if err := db.Model(&grant).Select("*").Updates(input).Error; err != nil {
+		// text field back to empty. Omit("id") is required alongside it: with a
+		// bare Select("*"), GORM also writes the (zeroed) input.ID into the SET
+		// clause, overwriting the row's real primary key with 0.
+		if err := db.Model(&grant).Select("*").Omit("id").Updates(input).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить грант"})
 			return
 		}
@@ -260,8 +262,11 @@ func UpdateProfession(db *gorm.DB) gin.HandlerFunc {
 		// Select("*") forces GORM to write every column from input, including
 		// zero values (empty string, 0, false) — plain .Updates(struct) silently
 		// skips zero-value fields, so without this an admin could never
-		// uncheck Hot or clear a text field back to empty.
-		if err := db.Model(&profession).Select("*").Updates(input).Error; err != nil {
+		// uncheck Hot or clear a text field back to empty. Omit("id") is
+		// required alongside it: with a bare Select("*"), GORM also writes the
+		// (zeroed) input.ID into the SET clause, overwriting the row's real
+		// primary key with 0.
+		if err := db.Model(&profession).Select("*").Omit("id").Updates(input).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить профессию"})
 			return
 		}
