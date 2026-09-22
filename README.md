@@ -2,8 +2,6 @@
 
 **Author:** Alikhan Dalikhan — Astana, Kazakhstan
 **Presentation:** https://canva.link/talapaiproject
-**Live Demo:** https://talapai-project-production.up.railway.app/dashboard
-
 **Talap.ai** is an AI-powered platform that helps students and young professionals discover their career path, find matching grants, and build a step-by-step development roadmap.
 
 ---
