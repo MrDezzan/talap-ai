@@ -1,13 +1,14 @@
+import os
 import psycopg2
 import sys
 
 def setup_db():
     conn_params = {
-        "host": "a1-postgres1.alem.ai",
-        "port": 30100,
-        "user": "REMOVED",
-        "password": "REMOVED",
-        "dbname": "aiszoomersdb"
+        "host": os.environ["DB_HOST"],
+        "port": int(os.environ.get("DB_PORT", "5432")),
+        "user": os.environ["DB_USER"],
+        "password": os.environ["DB_PASSWORD"],
+        "dbname": os.environ["DB_NAME"],
     }
 
     conn = None

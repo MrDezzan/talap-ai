@@ -1,70 +1,95 @@
-# Talap.ai — Build Your Career Path in 5 Minutes
+<h1 align="center">Talap.ai</h1>
+<p align="center"><b>Build your career path in 5 minutes.</b><br>An AI platform that helps students find a profession, match with grants and follow a step-by-step roadmap.</p>
 
-**Author:** Alikhan Dalikhan — Astana, Kazakhstan
-**Presentation:** https://canva.link/talapaiproject
-**Talap.ai** is an AI-powered platform that helps students and young professionals discover their career path, find matching grants, and build a step-by-step development roadmap.
+<p align="center">
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Go-Gin-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go">
+  <img src="https://img.shields.io/badge/OpenAI-API-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI">
+  <img src="https://img.shields.io/badge/JWT-auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" alt="JWT">
+</p>
+
+<p align="center"><a href="https://canva.link/talapaiproject">Project presentation</a> · Built in Astana, Kazakhstan</p>
 
 ---
+
+## The problem
+
+Students in Kazakhstan often pick a profession and a university without a clear picture of the options, and they miss grants because the information is scattered across dozens of sites. Talap.ai puts the options, the grants and a concrete plan in one place.
 
 ## Features
 
-### 🤖 Personal AI Assistant
-Analyzes the user's profile (skills, achievements, interests) and generates a personalized development strategy.
-- **AI Matching**: Automatically finds the most relevant professions and grants.
-- **Match Score**: Visualizes how well the user fits a specific grant or career path.
+**Personal AI assistant.** Reads the user's profile (skills, achievements, interests) and builds a personal development strategy. A match score shows how well the user fits a given grant or career.
 
-### 🗺️ Dynamic Roadmap
-Generates a step-by-step plan toward a chosen career goal.
-- **Learning Stages**: Each step includes a description, estimated duration, and useful resources.
-- **Personalization**: The roadmap adapts based on the user's current knowledge and target goal.
+**Dynamic roadmap.** A step-by-step plan toward the chosen goal. Every step has a description, an estimated duration and useful resources, and the plan adapts to what the user already knows.
 
-### 📂 Smart Portfolio
-A centralized hub for tracking achievements.
-- **Data Collection**: Simple forms for adding skills, academic results (UNT/ENT), and awards.
-- **PDF Export**: Instantly generates a polished resume from portfolio data.
+**AI consultant.** A chat for career questions. It can draft a CV from the conversation and the portfolio, and suggest courses or an exam-prep plan.
 
-### 🔎 Live Smart Search
-Instant search across the platform's entire knowledge base.
-- **Quick Access**: Triggered via `Cmd + K` hotkey.
-- **Categorization**: Results split between professions and grants with instant preview.
+**Smart portfolio.** One place for skills, exam results (UNT/ENT) and awards, with CV export to PDF.
 
-### 💬 AI Consultant (Chat)
-Interactive chat for career-related questions.
-- **Auto-generated Resume**: The AI can draft a CV based on the conversation and portfolio data.
-- **Resource Matching**: Users can ask the AI to find courses or exam prep plans.
+**Career and grant catalogs.** Filter by category, country and amount, track grant deadlines and see salary and demand trends for professions.
 
-### 🌐 Multilingual Support
-Full interface localization in three languages:
-- Russian
-- Kazakh
-- English
+**Live search.** Opens with `Cmd + K` and searches professions and grants at once, with an instant preview.
 
-### 🎓 Career & Grant Catalogs
-Extensive, filterable databases by category, country, and amount.
-- **Deadline Tracking**: Keeps users updated on upcoming grant deadlines.
-- **Market Trends**: Salary and demand insights for different professions.
+**Three languages.** Russian, Kazakh and English across the whole interface.
 
----
+**Admin tools.** An admin dashboard for managing grants and professions, plus a background importer that pulls grants from external sources and queues them for manual approval.
 
-## Tech Stack
+## Tech stack
 
-**Frontend**
-- React 18 + Vite (fast builds, HMR)
-- Vanilla CSS (custom, responsive design)
-- Lucide React (iconography)
-- Context API (state management, auth, localization)
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Context API (auth, state, localization), custom CSS, Lucide icons, jsPDF + html2canvas for CV export |
+| Backend | Go, Gin, GORM, JWT, Google OAuth |
+| AI | OpenAI-compatible API (OpenAI or OpenRouter) for chat, roadmaps and CV drafting |
+| Quality | Handler and middleware tests, rate limiting on auth routes, structured logging, load test script |
+| Deploy | Dockerfile for the API, `vercel.json` for the frontend |
+
+## Architecture
+
+```
+React SPA (Vite)  ──HTTPS/JSON──▶  Go API (Gin)  ──▶  Database (GORM)
+                                       │
+                                       ├──▶ OpenAI-compatible LLM
+                                       ├──▶ Google OAuth
+                                       └──▶ Grant importer (background worker)
+```
+
+```
+backend/
+  main.go         routes and server setup
+  handlers/       auth, grants, AI, admin
+  middleware/     JWT auth, rate limiting
+  importer/       background grant importer
+  config/         database and env setup
+  monitoring/     webhook alerts
+src/
+  screens/        Dashboard, Catalog, Grants, Roadmap, Portfolio, Chat, Quiz, Profile, Admin
+  pages/          Landing, Login, Register, Forgot password
+  context/        auth, language and chat state
+```
+
+## Run locally
 
 **Backend**
-- Go (Golang) — high-performance server
-- PostgreSQL — reliable data storage
-- OpenAI API — advanced AI integration
-- JWT — secure authentication
 
----
+```bash
+cd backend
+cp .env.example .env      # add your LLM key, Google OAuth credentials and database settings
+go run main.go            # http://localhost:8080
+```
 
-## My Role
+**Frontend**
 
-Solo-developed the full stack: designed and built the Go backend, integrated the OpenAI API for the AI-consultant and roadmap-generation features, and implemented the React frontend including multilingual support.
+```bash
+npm install
+npm run dev               # http://localhost:5173
+```
 
+The frontend talks to `http://localhost:8080/api` on localhost. In production set `VITE_API_URL`.
 
----
+More backend details are in [backend/README.md](backend/README.md).
+
+## My role
+
+I built the whole product alone: the Go backend and its API, the OpenAI integration behind the consultant and roadmap generation, the grant importer, and the React frontend with three-language support.
